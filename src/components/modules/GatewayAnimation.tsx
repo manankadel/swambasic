@@ -3,8 +3,10 @@
 import { motion } from "framer-motion";
 import Image from 'next/image';
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useState, useEffect } from 'react'; // NEW: Import hooks
 
-// --- VARIANTS (Reverted to original faster speeds) ---
+// --- All variants and layout components remain the same as before ---
+
 const desktopContainerVariants = {
   hidden: {},
   visible: { transition: { delayChildren: 1.2, staggerChildren: 1.2 } },
@@ -13,7 +15,7 @@ const desktopLogoContainerVariants = {
   hidden: { width: 0, opacity: 0, scale: 0 },
   visible: {
     width: 'auto', opacity: 1, scale: 1,
-    transition: { duration: 0.8, ease: "easeInOut" },
+    transition: { duration: 1.2, ease: "easeInOut" },
   },
 };
 const desktopImageVariants = {
@@ -29,7 +31,6 @@ const mobileLogoVariants = {
     visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 1, ease: "easeInOut" } }
 };
 
-// --- LAYOUT COMPONENTS ---
 const DesktopLayout = () => {
     const text = "SWAMBASIC";
     return (
@@ -41,9 +42,8 @@ const DesktopLayout = () => {
                     </motion.span>
                 ))}
             </span>
-            <motion.div className="flex items-center justify-center mx-3 md:mx-5" variants={desktopLogoContainerVariants}>
+            <motion.div className="flex items-center justify-center mx-3 md:mx-4" variants={desktopLogoContainerVariants}>
                 <motion.div variants={desktopImageVariants} className="relative w-36 h-36 md:w-56 md:h-56">
-                    {/* CORRECTED file extension */}
                     <Image src="/logo-rotating.GIF" alt="SWAMBASIC Logo" fill className="object-contain" unoptimized={true} />
                 </motion.div>
             </motion.div>
@@ -60,15 +60,14 @@ const DesktopLayout = () => {
 const MobileLayout = () => {
     const text = "SWAMBASIC";
     return (
-        <motion.div className="flex flex-col items-center justify-center gap-4" variants={mobileContainerVariants} initial="hidden" animate="visible">
+        <motion.div className="flex flex-col items-center justify-center gap-1" variants={mobileContainerVariants} initial="hidden" animate="visible">
             <motion.div variants={mobileLogoVariants}>
-                 <div className="relative w-40 h-40">
-                    {/* CORRECTED file extension */}
+                 <div className="relative w-60 h-60">
                     <Image src="/logo-rotating.GIF" alt="SWAMBASIC Logo" fill className="object-contain" unoptimized={true}/>
                 </div>
             </motion.div>
             <motion.span 
-                className="font-heading text-5xl font-extrabold tracking-widest uppercase overflow-hidden text-shadow-glow"
+                className="font-heading text-4xl font-extrabold tracking-widest uppercase overflow-hidden text-shadow-glow"
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 transition={{ duration: 0.8, ease: "easeInOut" }}
@@ -79,7 +78,27 @@ const MobileLayout = () => {
     );
 };
 
+
 export const GatewayAnimation = () => {
   const isMobile = useMediaQuery('(max-width: 767px)');
+  
+  // ==================================================================
+  // THE HYDRATION FIX IS HERE.
+  // ==================================================================
+  const [hasMounted, setHasMounted] = useState(false);
+
+  // This effect runs only on the client, after the initial render.
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // On the server and during the initial client render, hasMounted is false,
+  // so we render nothing. This guarantees the server and client HTML match.
+  if (!hasMounted) {
+    return null;
+  }
+  
+  // After mounting, hasMounted becomes true, and we can safely render the
+  // correct layout based on the now-available screen size.
   return isMobile ? <MobileLayout key="mobile" /> : <DesktopLayout key="desktop" />;
 };

@@ -14,7 +14,7 @@ const CountdownUnit = ({ value, label }: { value: string, label: string }) => (
 
 const CountdownTimer = () => {
   // SET YOUR LAUNCH DATE HERE
-  const launchDate = new Date("2025-07-21T12:00:00Z").getTime();
+  const launchDate = new Date("2025-07-21T14:00:00Z").getTime();
   const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
 
   useEffect(() => {
