@@ -77,10 +77,10 @@ export const GatewayAnimation = () => {
       >
         <motion.div variants={imageVariants}>
             <Image 
-                src="/logo-rotating.gif" 
+                src="/logo-rotating.GIF" 
                 alt="SWAMBASIC Logo" 
-                width={220} 
-                height={220}
+                width={250} 
+                height={250}
                 unoptimized={true}
             />
         </motion.div>
