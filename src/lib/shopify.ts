@@ -3,8 +3,6 @@ import { ShopifyProductsResponseBody, ShopifyProduct } from '@/types/shopify';
 const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!;
 const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!;
 
-// This is our main function for making API calls.
-// It is now correctly typed.
 async function shopifyFetch<T>({
   query,
   variables,
@@ -35,7 +33,13 @@ async function shopifyFetch<T>({
       body,
     };
   } catch (e) {
-    throw new Error(`Shopify API call failed: ${e.message}`);
+    // THE FIX IS HERE.
+    // We now check if 'e' is an instance of Error before accessing e.message.
+    if (e instanceof Error) {
+        throw new Error(`Shopify API call failed: ${e.message}`);
+    }
+    // If it's not a standard Error object, we handle it gracefully.
+    throw new Error('An unknown error occurred during the Shopify API call.');
   }
 }
 
@@ -65,15 +69,10 @@ const getProductsQuery = `
   }
 `;
 
-// THE FIX IS HERE:
-// We now tell shopifyFetch that we expect the response body to match our ShopifyProductsResponseBody interface.
-// The function is also typed to return a promise of a ShopifyProduct array.
 export async function getProducts(count: number): Promise<ShopifyProduct[]> {
   const res = await shopifyFetch<ShopifyProductsResponseBody>({
     query: getProductsQuery,
     variables: { first: count },
   });
-
-  // TypeScript now knows the exact shape of res.body, so this is safe.
   return res.body.data.products.edges.map((edge) => edge.node);
 }
