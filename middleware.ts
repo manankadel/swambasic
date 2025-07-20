@@ -1,44 +1,46 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// The name of the session cookie we set in the /api/access route.
 const SESSION_TOKEN_NAME = 'swambasic_session';
+const PROTECTED_ROUTES = ['/home', '/catalog', '/account', '/cart', '/contact']; // Add any other pages that need protection
 
 export function middleware(request: NextRequest) {
-  // 1. Get the session cookie from the user's request.
+  // Get the session cookie from the user's request
   const sessionCookie = request.cookies.get(SESSION_TOKEN_NAME);
   
-  // 2. Get the required session value from our environment variables.
-  //    This must be the exact same secret you use in the access API.
-  const sessionSecret = process.env.SESSION_SECRET;
-  const expectedSessionValue = `access_granted::${sessionSecret}`;
+  // Get the pathname of the requested page (e.g., "/home")
+  const { pathname } = request.nextUrl;
 
-  // 3. Check if the cookie exists and if its value is correct.
-  if (!sessionCookie || sessionCookie.value !== expectedSessionValue) {
-    // If the cookie is missing or wrong, the user is not authenticated.
-    // We redirect them back to the password page (the root URL).
-    // new URL('/', request.url) correctly builds the absolute URL for the redirect.
+  // Check if the user is trying to access one of our protected routes
+  const isAccessingProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+
+  // THE SECURITY LOGIC:
+  // IF the user is trying to access a protected route AND they do NOT have a session cookie...
+  if (isAccessingProtectedRoute && !sessionCookie) {
+    // ...forcefully redirect them back to the root password page.
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // 4. If the cookie is present and correct, let the user proceed to the requested page.
+  // OPTIONAL BUT RECOMMENDED:
+  // IF the user HAS a session cookie AND they try to visit the password page again...
+  if (sessionCookie && pathname === '/') {
+    // ...send them directly to the homepage.
+    return NextResponse.redirect(new URL('/home', request.url));
+  }
+  
+  // If none of the above rules match, let the user proceed.
   return NextResponse.next();
 }
 
-// ==================================================================
-// This config specifies which pages the middleware should protect.
-// We want to protect every page EXCEPT the password page itself.
-// ==================================================================
+// This config ensures the middleware runs on all relevant pages.
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - The root path '/' (the password page itself)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|$).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

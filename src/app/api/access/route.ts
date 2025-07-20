@@ -28,12 +28,12 @@ export async function POST(request: Request) {
       // The value can be simple, its existence is what matters. We'll sign it later for more security.
       const sessionValue = `access_granted::${sessionSecret}`;
 
-      cookieStore.set(SESSION_TOKEN_NAME, sessionValue, {
-        httpOnly: true, // Prevents client-side JS from accessing the cookie
-        secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-        path: '/',      // Available to the entire site
-        sameSite: 'strict', // Helps prevent CSRF attacks
-        maxAge: 60 * 60 * 24 * 7, // Cookie expires in 7 days
+     cookieStore.set(SESSION_TOKEN_NAME, "true", { // The value can be a simple "true"
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
       });
       
       return NextResponse.json({ success: true }, { status: 200 });
