@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
-// Minimalistic SVG Icons for the controls
+// The existing SoundOnIcon for when music is playing
 const SoundOnIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -11,47 +11,61 @@ const SoundOnIcon = () => (
   </svg>
 );
 
-const SoundOffIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-    <line x1="23" y1="9" x2="17" y2="15"></line>
-    <line x1="17" y1="9" x2="23" y2="15"></line>
-  </svg>
+// NEW: A proper "Play" icon for when the music is paused.
+const PlayIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+    </svg>
 );
 
 
 export const BackgroundMusicPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  // The state now tracks if the music is actively playing. It starts as false.
   const [isPlaying, setIsPlaying] = useState(false);
-  // NEW: Add a ref to track if it's the first time the user plays the audio.
-  const isFirstPlay = useRef(true);
 
-  // This function toggles the music play/pause state
-  const toggleAudio = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        // ==================================================================
-        // THE FIX: Check if this is the first play action.
-        // ==================================================================
-        if (isFirstPlay.current) {
-          // If it is, set the starting time to 20 seconds.
-          audioRef.current.currentTime = 20;
-          // Then, set the flag to false so this logic doesn't run again.
-          isFirstPlay.current = false;
-        }
-        
-        // Play returns a promise, we'll catch potential browser errors
-        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+  // This effect runs once to attempt autoplay.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      // Set the start time to 20 seconds.
+      audio.currentTime = 20;
+
+      // Attempt to play the audio. This returns a promise.
+      const playPromise = audio.play();
+
+      if (playPromise !== undefined) {
+        playPromise.then(_ => {
+          // Autoplay started successfully!
+          setIsPlaying(true);
+        })
+        .catch(error => {
+          // Autoplay was prevented.
+          // We don't need to do anything here, the UI will show the 'Play' icon.
+          console.warn("Audio autoplay was prevented by the browser:", error);
+          setIsPlaying(false);
+        });
       }
-      setIsPlaying(!isPlaying);
+    }
+  }, []); // The empty array ensures this runs only once.
+
+  // This function is now a simple Play/Pause toggle.
+  const togglePlayPause = () => {
+    const audio = audioRef.current;
+    if (audio) {
+        if (isPlaying) {
+            audio.pause();
+        } else {
+            audio.play();
+        }
+        // Update our state to the new playing status.
+        setIsPlaying(!isPlaying);
     }
   };
 
   return (
     <>
-      {/* The actual HTML audio element, hidden from view. It loops the music file. */}
+      {/* The audio element no longer has autoplay or muted props. We control it all with code. */}
       <audio 
         ref={audioRef} 
         src="/audio/background-music.mp3" 
@@ -59,13 +73,13 @@ export const BackgroundMusicPlayer = () => {
         preload="auto" 
       />
       
-      {/* This is the control button fixed to the bottom-right of the screen */}
       <button
-        onClick={toggleAudio}
+        onClick={togglePlayPause}
         className="fixed bottom-6 right-6 z-50 text-white/50 hover:text-white transition-colors duration-300"
         aria-label={isPlaying ? "Pause music" : "Play music"}
       >
-        {isPlaying ? <SoundOnIcon /> : <SoundOffIcon />}
+        {/* If music is playing, show the SoundOn icon. Otherwise, show the Play icon. */}
+        {isPlaying ? <SoundOnIcon /> : <PlayIcon />}
       </button>
     </>
   );

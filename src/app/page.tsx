@@ -32,14 +32,14 @@ const PasswordAccess = () => {
   };
 
   return (
-    <div className="mt-8 flex flex-col items-center">
+    <div className="mt-4 flex flex-col items-center">
       <form onSubmit={handleSubmit} className="flex items-center gap-4">
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter Access Code" className="font-sans w-full max-w-[240px] bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50" disabled={isLoading}/>
         <button type="submit" disabled={isLoading} className="text-foreground/80 hover:text-white transition-colors disabled:opacity-50" onMouseEnter={playHoverSound}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </button>
       </form>
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
     </div>
   );
 };
@@ -66,12 +66,12 @@ export default function GatewayPage() {
       {/* - `place-items-center`: Perfectly centers its child vertically and horizontally. */}
       {/* - `overflow-hidden`: This is the key. It guarantees NO scrolling. */}
       {/* ================================================================== */}
-      <main className="grid h-screen w-full place-items-center overflow-hidden p-4">
+      <main className="grid h-screen w-full place-items-center overflow-hidden p-4 pt-0 md:pt-4">
         
         {/* This single flex column contains all content and is centered by the grid. */}
         <div className="flex w-full flex-col items-center">
         
-            <motion.div layout transition={{ duration: 1.0, ease: 'easeInOut' }}>
+            <motion.div layout transition={{ duration: 1.0, ease: 'easeInOut', delay: 0.1 }}>
               <GatewayAnimation />
             </motion.div>
 
@@ -84,7 +84,7 @@ export default function GatewayPage() {
                     transition={{ duration: 1.0, ease: 'easeInOut' }}
                 >
                     {/* REDUCED vertical margin to help everything fit */}
-                    <p className="font-sans text-lg md:text-xl mt-6 mb-6 text-foreground/80 animate-shimmer-glow">Join the waitlist for exclusive access.</p>
+                    <p className="font-sans text-lg md:text-xl mt-3 mb-6 text-foreground/80 animate-shimmer-glow">Join the waitlist for exclusive access.</p>
                     <div className="mb-8"> <CountdownTimer /> </div>
                     <div className="w-full flex justify-center"> <WaitlistForm /> </div>
                     <div className="mt-8"> <PasswordAccess /> </div>

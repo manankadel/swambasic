@@ -51,7 +51,7 @@ export const WaitlistForm = () => {
               placeholder="Email"
               required
               // UPDATED: rounded-3xl and adjusted placeholder text
-              className="h-14 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
+              className="h-11 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
               disabled={status === 'loading' || status === 'success'}
             />
             {/* Input 2: Phone (shorter width) */}
@@ -61,7 +61,7 @@ export const WaitlistForm = () => {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Phone"
               // UPDATED: rounded-3xl and adjusted placeholder text
-              className="h-14 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
+              className="h-11 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
               disabled={status === 'loading' || status === 'success'}
             />
         </div>
@@ -71,7 +71,7 @@ export const WaitlistForm = () => {
           type="submit"
           disabled={status === 'loading' || status === 'success'}
           // UPDATED: rounded-3xl
-          className="h-14 px-6 bg-white/10 border border-white/20 backdrop-blur-sm rounded-3xl font-sans font-semibold text-white transition-all duration-300 disabled:opacity-50 hover:border-white/40 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          className="h-11 px-6 bg-white/10 border border-white/20 backdrop-blur-sm rounded-3xl font-sans font-semibold text-white transition-all duration-300 disabled:opacity-50 hover:border-white/40 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
           whileTap={{ scale: status !== 'loading' ? 0.95 : 1 }}
           onMouseEnter={playHoverSound}
         >
