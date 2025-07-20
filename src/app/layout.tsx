@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { fontPoppins, fontUnbounded, fontGenoa } from './fonts';
 import { BackgroundMusicPlayer } from '@/components/core/BackgroundMusicPlayer';
-import { GlobalSoundEffects } from '@/components/core/GlobalSoundEffects'; // NEW: Import global SFX
+import { GlobalSoundEffects } from '@/components/core/GlobalSoundEffects';
+import { AppHeightProvider } from '@/components/core/AppHeightProvider'; // <-- IMPORT THE NEW PROVIDER
 
 export const metadata = {
   title: 'SWAMBASIC - Coming Soon',
@@ -22,9 +23,12 @@ export default function RootLayout({
         'dark'
       ].join(' ')}>
       <body>
-        <GlobalSoundEffects /> {/* NEW: Activate global sounds */}
-        {children}
-        <BackgroundMusicPlayer />
+        {/* WRAP everything in the AppHeightProvider */}
+        <AppHeightProvider>
+            <GlobalSoundEffects />
+            {children}
+            <BackgroundMusicPlayer />
+        </AppHeightProvider>
       </body>
     </html>
   )
