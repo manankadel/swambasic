@@ -47,7 +47,7 @@ const MobileLayout = () => {
     return (
         // The parent container orchestrates the animation sequence.
         <motion.div 
-            className="flex flex-col items-center justify-center gap-1"
+            className="flex flex-col items-center justify-center gap-0"
             initial="hidden"
             animate="visible"
             variants={{
@@ -107,7 +107,7 @@ export const GatewayAnimation = () => {
 
   // This placeholder prevents hydration errors and layout shifts.
   if (!hasMounted) {
-    return <div className="h-[284px] md:h-[224px]" />;
+    return <div className="h-[184px] md:h-[224px]" />;
   }
   
   // This safely renders the correct layout based on the actual screen size.

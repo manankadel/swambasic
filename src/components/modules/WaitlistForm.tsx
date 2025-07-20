@@ -37,7 +37,7 @@ export const WaitlistForm = () => {
   return (
     <div className="w-full max-w-sm mt-4 text-center">
       {/* The main form is a flex column with a gap */}
-      <form onSubmit={handleSubmit} className="flex flex-col items-stretch gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col items-stretch gap-1">
         
         {/* ================================================================== */}
         {/* NEW LAYOUT: A horizontal flex container for the inputs.          */}

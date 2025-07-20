@@ -33,7 +33,7 @@ export default function GatewayPage() {
         - `h-screen` is removed because it is unreliable.
         - `overflow-hidden` remains to guarantee no scrolling.
       */}
-      <main style={{ height: 'calc(var(--app-height, 100vh))' }} className="grid w-full place-items-center overflow-hidden p-4">
+      <main style={{ height: 'calc(var(--app-height, 100vh))' }} className="grid w-full place-items-center overflow-hidden p-4 pt-0">
         
         <div className="flex w-full flex-col items-center">
             <motion.div layout transition={{ duration: 1.0, ease: 'easeInOut' }}>
@@ -42,8 +42,8 @@ export default function GatewayPage() {
             <AnimatePresence>
                 {showContent && (
                 <motion.div className="flex w-full max-w-sm flex-col items-center text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.0, ease: 'easeInOut', delay: 0.5 }}>
-                    <p className="font-sans text-lg md:text-xl mt-6 mb-6 text-foreground/80 animate-shimmer-glow">Join the waitlist for exclusive access.</p>
-                    <div className="mb-8"> <CountdownTimer /> </div>
+                    <p className="font-sans text-md md:text-xl mt-6 mb-6 text-foreground/80 animate-shimmer-glow">Join the waitlist for exclusive access.</p>
+                    <div className="mb-6"> <CountdownTimer /> </div>
                     <div className="w-full flex justify-center"> <WaitlistForm /> </div>
                     <div className="mt-8"> <PasswordAccess /> </div>
                 </motion.div>
