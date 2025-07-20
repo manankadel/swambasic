@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 
 const CountdownUnit = ({ value, label }: { value: string, label: string }) => (
     <div className="flex flex-col items-center">
-        <span className="font-display font-black text-4xl md:text-6xl tracking-tighter">
+        <span className="font-display font-black text-3xl md:text-6xl tracking-tighter">
             {value}
         </span>
         <span className="font-sans text-xs text-foreground/50 tracking-widest mt-1">
