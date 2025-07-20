@@ -14,22 +14,20 @@ const PasswordAccess = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // UPDATED: Only initialize the hover sound here.
+  // CORRECTED file extension
   const playHoverSound = useSound('/audio/hover.mp3', 0.3);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // REMOVED: playClickSound() is removed.
     setIsLoading(true);
     setError('');
 
-    // ... rest of the function is the same
     const response = await fetch('/api/access', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),
     });
+
     if (response.ok) {
       router.push('/home');
     } else {
@@ -46,9 +44,8 @@ const PasswordAccess = () => {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          // REMOVED: onKeyDown is removed. The global handler takes care of it.
           placeholder="Enter Access Code"
-          className="font-sans w-64 bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50"
+          className="font-sans w-full max-w-[240px] bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50"
           disabled={isLoading}
         />
         <button 
@@ -68,7 +65,6 @@ const PasswordAccess = () => {
   );
 };
 
-// ... The rest of the GatewayPage component remains unchanged ...
 export default function GatewayPage() {
   const [showContent, setShowContent] = useState(false);
 
@@ -82,20 +78,28 @@ export default function GatewayPage() {
   return (
     <>
       <InteractiveLiquidBackground /> 
-      <main className="flex min-h-screen flex-col items-center justify-center relative z-10 overflow-hidden">
-        <div className="p-6 flex flex-col items-center justify-center">
-            <div className="absolute top-1/2 -translate-y-[150px] sm:-translate-y-40">
-                <GatewayAnimation />
-            </div>
+      <main className="flex min-h-screen flex-col items-center justify-center relative z-10 overflow-hidden p-4">
+        <div className="relative flex flex-col items-center justify-center">
+
+            {/* ================================================================== */}
+            {/* THE FIX FOR THE UPWARD SHIFT ANIMATION IS HERE.                  */}
+            {/* By wrapping GatewayAnimation in a motion.div with the 'layout'   */}
+            {/* prop, Framer Motion will automatically animate its position      */}
+            {/* change when the content below appears.                           */}
+            {/* ================================================================== */}
+            <motion.div layout transition={{ duration: 1.0, ease: 'easeInOut' }}>
+              <GatewayAnimation />
+            </motion.div>
+
             <AnimatePresence>
                 {showContent && (
                 <motion.div
-                    className="flex flex-col items-center text-center w-full absolute top-1/2"
-                    initial={{ opacity: 0, y: 30 }}
+                    className="flex flex-col items-center text-center w-full mt-6 md:mt-8"
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: 'easeInOut' }}
                 >
-                    <p className="font-sans mb-6 text-foreground/80">Join the waitlist for exclusive access.</p>
+                    <p className="font-sans text-lg md:text-xl mb-6 text-foreground/80 animate-shimmer-glow">Join the waitlist for exclusive access.</p>
                     <div className="mb-8"> <CountdownTimer /> </div>
                     <div className="w-full flex justify-center"> <WaitlistForm /> </div>
                     <div> <PasswordAccess /> </div>

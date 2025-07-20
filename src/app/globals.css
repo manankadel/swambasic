@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  THE FIX IS HERE:
-  This explicitly removes the default browser margin from the body and html tags,
-  and prevents any accidental horizontal scrollbars.
-*/
 html, body {
   padding: 0;
   margin: 0;
@@ -15,4 +10,23 @@ html, body {
 
 body {
   @apply bg-black text-foreground;
+}
+
+/* NEW: Shimmer/Glow animation for text */
+.animate-shimmer-glow {
+  background: linear-gradient(90deg, #ffffff 25%, #888888 50%, #ffffff 75%);
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-glow 8s linear infinite;
+}
+
+@keyframes shimmer-glow {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

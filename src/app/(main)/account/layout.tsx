@@ -19,7 +19,7 @@ export default function AccountLayout({
   return (
     <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
-        <h1 className="font-display text-5xl font-bold mb-12">Personal Hub</h1>
+        <h1 className="font-display text-4xl md:text-5xl font-bold mb-8 md:mb-12">Personal Hub</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Left Column: Navigation */}
           <aside className="md:col-span-1">

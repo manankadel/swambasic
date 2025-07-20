@@ -15,7 +15,7 @@ export const fontUnbounded = Unbounded({
 
 // DEFINE THE NEW LOCAL FONT HERE
 export const fontGenoa = localFont({
-  src: '../assets/fonts/genoa.ttf', // <-- PATH TO YOUR FONT FILE
+  src: '../assets/fonts/genoa.otf', // <-- PATH TO YOUR FONT FILE
   display: 'swap',
   variable: '--font-genoa', // <-- CSS variable we will use
 });

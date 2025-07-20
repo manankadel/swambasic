@@ -23,6 +23,8 @@ const SoundOffIcon = () => (
 export const BackgroundMusicPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  // NEW: Add a ref to track if it's the first time the user plays the audio.
+  const isFirstPlay = useRef(true);
 
   // This function toggles the music play/pause state
   const toggleAudio = () => {
@@ -30,6 +32,16 @@ export const BackgroundMusicPlayer = () => {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
+        // ==================================================================
+        // THE FIX: Check if this is the first play action.
+        // ==================================================================
+        if (isFirstPlay.current) {
+          // If it is, set the starting time to 20 seconds.
+          audioRef.current.currentTime = 20;
+          // Then, set the flag to false so this logic doesn't run again.
+          isFirstPlay.current = false;
+        }
+        
         // Play returns a promise, we'll catch potential browser errors
         audioRef.current.play().catch(e => console.error("Audio play failed:", e));
       }

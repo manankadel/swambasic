@@ -29,7 +29,7 @@ const CartPage = () => {
     <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         <h1 className="font-display text-5xl font-bold mb-12">Your Cart</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Left Section: Cart Items */}
           <div className="lg:col-span-2 flex flex-col gap-6">
             {placeholderCartItems.map(item => (
@@ -54,7 +54,7 @@ const CartPage = () => {
 
           {/* Right Section: Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-40 p-6 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
+             <div className="lg:sticky top-40 p-6 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
               <h2 className="font-display text-2xl font-bold">Summary</h2>
               <div className="mt-6 space-y-2 font-mono text-sm text-white/80">
                 <div className="flex justify-between">

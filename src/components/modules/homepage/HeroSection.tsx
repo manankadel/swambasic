@@ -24,7 +24,7 @@ export const HeroSection = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.5 }}
       >
-        <h1 className="font-display font-black text-6xl md:text-8xl uppercase">
+        <h1 className="font-display font-black text-5xl md:text-8xl uppercase">
           First Drop Is Live
         </h1>
         <p className="font-sans mt-4 max-w-lg">

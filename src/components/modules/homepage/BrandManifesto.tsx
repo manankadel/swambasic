@@ -13,12 +13,12 @@ export const BrandManifesto = () => {
         viewport={{ once: true, amount: 0.5 }}
         transition={{ staggerChildren: 0.05 }}
       >
-        <h2 className="font-display font-bold text-5xl md:text-6xl mb-8">
+        <h2 className="font-display font-bold text-4xl md:text-6xl mb-8">
           <motion.span variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8 } } }}>
             The Philosophy
           </motion.span>
         </h2>
-        <p className="font-sans text-lg md:text-xl leading-relaxed text-white/70">
+        <p className="font-sans text-base md:text-xl leading-relaxed text-white/70">
           {text.split(' ').map((word, i) => (
             <motion.span
               key={i}
