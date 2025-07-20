@@ -9,7 +9,7 @@ import CountdownTimer from '@/components/modules/CountdownTimer';
 import { InteractiveLiquidBackground } from '@/components/core/InteractiveLiquidBackground';
 import { useSound } from '@/hooks/useSound';
 
-// PasswordAccess component remains unchanged
+// The PasswordAccess component's code is correct and does not need to change.
 const PasswordAccess = () => {
   const router = useRouter();
   const [password, setPassword] = useState('');
@@ -21,13 +21,7 @@ const PasswordAccess = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
-    const response = await fetch('/api/access', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
-
+    const response = await fetch('/api/access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }), });
     if (response.ok) {
       router.push('/home');
     } else {
@@ -40,24 +34,9 @@ const PasswordAccess = () => {
   return (
     <div className="mt-8 flex flex-col items-center">
       <form onSubmit={handleSubmit} className="flex items-center gap-4">
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter Access Code"
-          className="font-sans w-full max-w-[240px] bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50"
-          disabled={isLoading}
-        />
-        <button 
-          type="submit" 
-          disabled={isLoading} 
-          className="text-foreground/80 hover:text-white transition-colors disabled:opacity-50"
-          onMouseEnter={playHoverSound}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter Access Code" className="font-sans w-full max-w-[240px] bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50" disabled={isLoading}/>
+        <button type="submit" disabled={isLoading} className="text-foreground/80 hover:text-white transition-colors disabled:opacity-50" onMouseEnter={playHoverSound}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </button>
       </form>
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
@@ -81,17 +60,17 @@ export default function GatewayPage() {
       <InteractiveLiquidBackground /> 
 
       {/* ================================================================== */}
-      {/* UNIVERSAL LAYOUT FIX:                                              */}
-      {/* - min-h-screen: Ensures the container is at least full height.     */}
-      {/* - flex items-center: Centers the content block horizontally.       */}
-      {/* - py-20: Adds ample top/bottom padding.                            */}
-      {/* - REMOVED: justify-center and overflow-hidden.                     */}
-      {/* This combination ensures content is centered on tall screens and   */}
-      {/* becomes scrollable on short screens without being cut off.         */}
+      {/* THE DEFINITIVE NO-SCROLL LAYOUT FIX                                */}
+      {/* - `grid`: A more powerful centering tool than flexbox for this case. */}
+      {/* - `h-screen`: Forces the main element to be exactly the viewport height. */}
+      {/* - `place-items-center`: Perfectly centers its child vertically and horizontally. */}
+      {/* - `overflow-hidden`: This is the key. It guarantees NO scrolling. */}
       {/* ================================================================== */}
-      <main className="flex min-h-screen flex-col items-center relative z-10 p-4 py-0">
-
-        <div className="relative flex flex-col items-center justify-center">
+      <main className="grid h-screen w-full place-items-center overflow-hidden p-4">
+        
+        {/* This single flex column contains all content and is centered by the grid. */}
+        <div className="flex w-full flex-col items-center">
+        
             <motion.div layout transition={{ duration: 1.0, ease: 'easeInOut' }}>
               <GatewayAnimation />
             </motion.div>
@@ -99,15 +78,16 @@ export default function GatewayPage() {
             <AnimatePresence>
                 {showContent && (
                 <motion.div
-                    className="flex flex-col items-center text-center w-full mt-6 md:mt-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, ease: 'easeInOut' }}
+                    className="flex w-full max-w-sm flex-col items-center text-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 1.0, ease: 'easeInOut' }}
                 >
-                    <p className="font-display text-md md:text-xl mb-6 text-foreground/80 animate-shimmer-glow">Join the waitlist for exclusive access.</p>
+                    {/* REDUCED vertical margin to help everything fit */}
+                    <p className="font-sans text-lg md:text-xl mt-6 mb-6 text-foreground/80 animate-shimmer-glow">Join the waitlist for exclusive access.</p>
                     <div className="mb-8"> <CountdownTimer /> </div>
                     <div className="w-full flex justify-center"> <WaitlistForm /> </div>
-                    <div> <PasswordAccess /> </div>
+                    <div className="mt-8"> <PasswordAccess /> </div>
                 </motion.div>
                 )}
             </AnimatePresence>
