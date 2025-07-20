@@ -22,7 +22,7 @@ const desktopLogoContainerVariants = {
 };
 const desktopImageVariants = {
   hidden: { rotate: -180 },
-  visible: { rotate: 0, transition: { duration: 1, delay: 1.2 } }
+  visible: { rotate: 0, transition: { duration: 1, delay: 0.5 } }
 };
 
 const DesktopLayout = () => {
@@ -53,7 +53,7 @@ const mobileItemVariant = {
         opacity: 1,
         y: 0,
         transition: {
-            duration: 0.9, // A smooth, premium duration
+            duration: 0.5, // A smooth, premium duration
             ease: [0.43, 0.13, 0.23, 0.96] // A standard easing curve for this kind of reveal
         }
     }
@@ -71,7 +71,7 @@ const MobileLayout = () => {
                 // This tells the container to stagger the 'visible' animation of its children.
                 visible: {
                     transition: {
-                        staggerChildren: 0.4, // 0.4s delay between logo and text animating in.
+                        staggerChildren: 0, // 0.4s delay between logo and text animating in.
                     }
                 }
             }}
