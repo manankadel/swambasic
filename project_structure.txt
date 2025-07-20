@@ -1,0 +1,70 @@
+.env.local
+.gitignore
+README.md
+code_dump.txt
+dump_project.py
+eslint.config.mjs
+next-env.d.ts
+next.config.mjs
+package.json
+postcss.config.mjs
+project_structure.txt
+public/
+  sculpture.glb
+  sculpture1.glb
+  sculpture2.glb
+src/
+  app/
+    (main)/
+      account/
+        addresses/
+          page.tsx
+        layout.tsx
+        orders/
+          page.tsx
+        page.tsx
+        profile/
+          page.tsx
+      cart/
+        page.tsx
+      home/
+        page.tsx
+      layout.tsx
+    api/
+      access/
+        route.ts
+      waitlist/
+        route.ts
+    fonts.ts
+    globals.css
+    layout.tsx
+    page.tsx
+  assets/
+    fonts/
+  components/
+    core/
+      Footer.tsx
+      Header.tsx
+      InteractiveLiquidBackground.tsx
+    modules/
+      CountdownTimer.tsx
+      GatewayAnimation.tsx
+      WaitlistForm.tsx
+      account/
+        Addresses.tsx
+        OrderHistory.tsx
+        ProfileDetails.tsx
+      glitch/
+        GlitchCanvas.tsx
+      homepage/
+        BrandManifesto.tsx
+        FeaturedProducts.tsx
+        HeroSection.tsx
+  lib/
+    shopify.ts
+  styles/
+  types/
+    global.d.ts
+    shopify.d.ts
+tailwind.config.ts
+tsconfig.json
