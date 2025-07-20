@@ -48,7 +48,7 @@ const MobileLayout = () => {
         // The parent container orchestrates the animation sequence.
         <motion.div 
             className="flex flex-col items-center justify-center gap-0"
-            initial="hidden"
+            
             animate="visible"
             variants={{
                 visible: {
