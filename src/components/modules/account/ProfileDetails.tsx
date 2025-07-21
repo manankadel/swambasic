@@ -27,9 +27,9 @@ const FormInput = ({ label, type, id, value }: FormInputProps) => (
 const ProfileDetails = () => {
   // Placeholder data, to be replaced by Shopify customer data
   const user = {
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com'
+    firstName: 'Manan',
+    lastName: 'Kadel',
+    email: 'manankadel@gmail.com'
   };
 
   return (

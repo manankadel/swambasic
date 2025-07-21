@@ -12,12 +12,12 @@ interface Address {
 
 // Placeholder data, to be replaced by Shopify customer addresses
 const placeholderAddress: Address = {
-  address1: '123 Luxury Lane',
-  address2: 'Apt 4B',
-  city: 'Metropolis',
-  province: 'State',
-  zip: '12345',
-  country: 'United States'
+  address1: '42,',
+  address2: 'Dhanraj Villa',
+  city: 'Jaipur',
+  province: 'Rajasthan',
+  zip: '302020',
+  country: 'India'
 };
 
 // Define the props for our AddressCard component
