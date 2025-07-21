@@ -1,18 +1,5 @@
 
 
-### .\.env.local ###
-
-# Shopify Storefront API (Public)
-NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN="544ace7efa190d01725e02d23a9a4ee2"
-NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN="swam-basic.myshopify.com"
-
-# Shopify Admin API (Private - DO NOT prefix with NEXT_PUBLIC_)
-SHOPIFY_ADMIN_ACCESS_TOKEN="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"
-
-# Site Access
-SITE_ACCESS_PASSWORD="12345677"
-SESSION_SECRET="hzKEiwAaoCvCr0EPnLzIpWBL10qmo5Fc"
-
 ### .\.gitignore ###
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
