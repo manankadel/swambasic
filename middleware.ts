@@ -6,6 +6,7 @@ const PROTECTED_ROUTES = ['/home', '/catalog', '/account', '/cart', '/contact'];
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 // Simple session validation function
+// Simple session validation function
 function isValidSession(sessionValue: string): boolean {
   try {
     // Decode the session (base64 encoded with timestamp|token|secret)
@@ -21,11 +22,12 @@ function isValidSession(sessionValue: string): boolean {
     }
     
     // Validate that all parts exist and token has minimum length
-    return token && token.length > 10 && secret && secret.length > 0;
+    return !!(token && token.length > 10 && secret && secret.length > 0);
   } catch (error) {
     return false; // Invalid session format
   }
 }
+
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
