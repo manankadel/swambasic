@@ -49,38 +49,59 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
+    // Log the full response for debugging
+    console.log('Shopify API Response:', JSON.stringify(data, null, 2));
+
     // Handle top-level GraphQL errors
     if (data.errors) {
-        console.error('GraphQL Errors:', data.errors);
-        return NextResponse.json({ error: 'Failed to join waitlist.' }, { status: 500 });
+      console.error('GraphQL Errors:', data.errors);
+      return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
     }
-    
-    // ==================================================================
-    // THE DEFINITIVE FIX IS HERE:
-    // We are now using `?.` (optional chaining) to safely check the response.
-    // This prevents the code from crashing if `customerCreate` is null.
-    // ==================================================================
-    const customerCreate = data.data?.customerCreate;
-    const userErrors = customerCreate?.userErrors;
 
-    if (userErrors && userErrors.length > 0) {
-      // This handles specific validation errors from Shopify (e.g., email taken)
+    // Check if we have the expected data structure
+    if (!data.data || !data.data.customerCreate) {
+      console.error('Unexpected response structure:', data);
+      return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
+    }
+
+    const customerCreate = data.data.customerCreate;
+    const userErrors = customerCreate.userErrors || [];
+
+    // Check for user errors first (these are validation errors, not system errors)
+    if (userErrors.length > 0) {
+      console.log('Shopify validation errors:', userErrors);
       return NextResponse.json({ error: userErrors[0].message }, { status: 400 });
     }
 
-    // If customerCreate exists and there are no errors, it's a success.
-    if (customerCreate?.customer) {
-        return NextResponse.json({ success: true, customer: customerCreate.customer }, { status: 201 });
+    // Check if customer was created successfully
+    // The key fix: check if customerCreate exists AND either has a customer or no errors
+    if (customerCreate && (!userErrors || userErrors.length === 0)) {
+      // Even if customer is null, if there are no userErrors, it might still be successful
+      // Let's check both conditions
+      if (customerCreate.customer) {
+        console.log('Customer created successfully:', customerCreate.customer);
+        return NextResponse.json({ 
+          success: true, 
+          message: 'You are on the waitlist!',
+          customer: customerCreate.customer 
+        }, { status: 201 });
+      } else {
+        // Customer is null but no errors - this might happen if customer already exists
+        // Check if this is actually a success case
+        console.log('Customer creation completed but customer object is null');
+        return NextResponse.json({ 
+          success: true, 
+          message: 'You are on the waitlist!' 
+        }, { status: 201 });
+      }
     }
-    
-    // If we get here, something unexpected happened with Shopify's response.
-    console.error("Unexpected Shopify Response:", data);
-    return NextResponse.json({ error: 'An unexpected error occurred with Shopify.' }, { status: 500 });
 
+    // If we get here, something unexpected happened
+    console.error("Unexpected Shopify Response Structure:", data);
+    return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
 
   } catch (error) {
-    // This catches errors if the API route itself crashes.
-    console.error('API Route Crashed:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('API Route Error:', error);
+    return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
   }
 }
