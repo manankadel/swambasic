@@ -11,7 +11,11 @@ export async function POST(request: Request) {
   // 2. Prepare the data for Shopify
   const adminApiToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
   const storeDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-  const adminApiUrl = `https://${storeDomain}/admin/api/2025-07/graphql.json`;
+  
+  // ==================================================================
+  // THE FIX IS HERE: Changed the API version to the stable '2024-04'.
+  // ==================================================================
+  const adminApiUrl = `https://${storeDomain}/admin/api/2024-04/graphql.json`;
 
   const mutation = {
     query: `
@@ -33,7 +37,7 @@ export async function POST(request: Request) {
     variables: {
       input: {
         email: email,
-        phone: phone, // Pass the phone number to Shopify
+        phone: phone,
         tags: ["waitlist", "pre-launch"],
       },
     },
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
     // 4. Handle response
     if (data.errors) {
         console.error('GraphQL Errors:', data.errors);
-        return NextResponse.json({ error: 'Failed to create customer in Shopify.' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to join waitlist.' }, { status: 500 });
     }
     
     const userErrors = data.data.customerCreate.userErrors;
