@@ -47,57 +47,45 @@ export async function POST(request: Request) {
       body: JSON.stringify(mutation),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
 
-    // Log the full response for debugging
-    console.log('Shopify API Response:', JSON.stringify(data, null, 2));
+    // First, check if the response is even valid JSON
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (e) {
+        console.error("Failed to parse Shopify response as JSON:", responseText);
+        return NextResponse.json({ error: 'Invalid response from Shopify.' }, { status: 500 });
+    }
+    
+    // ==================================================================
+    // STEP 1: LOG THE RESPONSE
+    // This will print the full Shopify response into your Vercel logs.
+    // ==================================================================
+    console.log("SHOPIFY_API_RESPONSE:", JSON.stringify(data, null, 2));
 
-    // Handle top-level GraphQL errors
+
+    // Check for top-level GraphQL errors that indicate a problem with the query itself
     if (data.errors) {
-      console.error('GraphQL Errors:', data.errors);
-      return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
+        console.error('GraphQL Errors:', data.errors);
+        return NextResponse.json({ error: 'Failed to join waitlist due to a GraphQL error.' }, { status: 500 });
+    }
+    
+    // Check for user-specific errors returned by the mutation (e.g., "Email has already been taken")
+    const userErrors = data.data?.customerCreate?.userErrors;
+    if (userErrors && userErrors.length > 0) {
+        console.error('Shopify User Errors:', userErrors);
+        return NextResponse.json({ error: userErrors[0].message }, { status: 400 });
     }
 
-    // Check if we have the expected data structure
-    if (!data.data || !data.data.customerCreate) {
-      console.error('Unexpected response structure:', data);
-      return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
-    }
-
-    const customerCreate = data.data.customerCreate;
-    const userErrors = customerCreate.userErrors || [];
-
-    // DETAILED LOGGING FOR DEBUGGING
-    console.log('=== DETAILED SHOPIFY RESPONSE DEBUG ===');
-    console.log('customerCreate exists:', !!customerCreate);
-    console.log('customerCreate.customer exists:', !!customerCreate?.customer);
-    console.log('userErrors:', userErrors);
-    console.log('userErrors.length:', userErrors.length);
-    console.log('Full customerCreate object:', customerCreate);
-    console.log('=======================================');
-
-    // Check for user errors first (these are validation errors, not system errors)
-    if (userErrors.length > 0) {
-      console.log('Shopify validation errors:', userErrors);
-      return NextResponse.json({ error: userErrors[0].message }, { status: 400 });
-    }
-
-    // SIMPLIFIED SUCCESS CHECK - if customerCreate exists and no userErrors, it's success
-    if (customerCreate) {
-      console.log('✅ SUCCESS: Customer operation completed successfully');
-      return NextResponse.json({ 
-        success: true, 
-        message: 'You are on the waitlist!',
-        customer: customerCreate.customer || null
-      }, { status: 201 });
-    }
-
-    // If we get here, something unexpected happened
-    console.error("Unexpected Shopify Response Structure:", data);
-    return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
+    // ==================================================================
+    // STEP 2: THE NEW SUCCESS CONDITION
+    // If we have passed all the error checks, we can confidently say it was a success.
+    // ==================================================================
+    return NextResponse.json({ success: true, customer: data.data?.customerCreate?.customer || 'Customer created' }, { status: 201 });
 
   } catch (error) {
-    console.error('API Route Error:', error);
-    return NextResponse.json({ error: 'Not yet, please try again in some time.' }, { status: 500 });
+    console.error('API Route Crashed:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

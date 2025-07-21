@@ -35,6 +35,9 @@ export const GlobalSoundEffects = () => {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Add null check for event.key before accessing its properties
+      if (!event.key) return;
+      
       const isTypingKey = event.key.length === 1 || event.key === 'Backspace';
       if (isTypingKey && typingSoundRef.current) {
         typingSoundRef.current.currentTime = 0; // Rewind to start

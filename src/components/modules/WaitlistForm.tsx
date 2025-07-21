@@ -15,22 +15,42 @@ export const WaitlistForm = () => {
     setStatus('loading');
     setMessage('');
 
-    const response = await fetch('/api/waitlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, phone }),
-    });
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, phone }),
+      });
 
-    const data = await response.json();
+      // Check if response has content and is JSON
+      let data = null;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        const text = await response.text();
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error('Failed to parse JSON:', parseError);
+            data = { error: 'Invalid response from server' };
+          }
+        }
+      }
 
-    if (response.ok) {
-      setStatus('success');
-      setMessage("You're on the list. We'll be in touch.");
-      setEmail('');
-      setPhone('');
-    } else {
+      if (response.ok) {
+        setStatus('success');
+        setMessage("You're on the list. We'll be in touch.");
+        setEmail('');
+        setPhone('');
+      } else {
+        setStatus('error');
+        setMessage(data?.error || `Server error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Network error:', error);
       setStatus('error');
-      setMessage(data.error || 'An unexpected error occurred.');
+      setMessage('Network error. Please try again.');
     }
   };
 
