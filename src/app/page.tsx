@@ -233,25 +233,20 @@ export default function GatewayPage() {
     </AnimatePresence>
   ), [showContent]);
 
-  // Memoized main layout
-  const mainLayout = useMemo(() => (
-    <main 
-      style={STYLES.main}
-      className="flex flex-col items-center justify-start overflow-hidden p-4 pt-2 md:pt-0 md:grid md:place-items-center"
-    >
-      <div className="flex w-full flex-col items-center mt-4 md:mt-0">
-        <motion.div layout {...MOTION_VARIANTS.layout}>
-          <GatewayAnimation />
-        </motion.div>
-        {contentSection}
-      </div>
-    </main>
-  ), [contentSection]);
-
   return (
-    <div className="min-h-screen md:h-auto">
+    <div className="min-h-screen">
       <InteractiveLiquidBackground />
-      {mainLayout}
+      <main 
+        style={STYLES.main}
+        className="relative flex flex-col items-center justify-center px-4 py-8"
+      >
+        <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto">
+          <motion.div layout {...MOTION_VARIANTS.layout} className="mb-4 md:mb-8">
+            <GatewayAnimation />
+          </motion.div>
+          {contentSection}
+        </div>
+      </main>
     </div>
   );
 }
