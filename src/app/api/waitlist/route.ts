@@ -67,33 +67,29 @@ export async function POST(request: Request) {
     const customerCreate = data.data.customerCreate;
     const userErrors = customerCreate.userErrors || [];
 
+    // DETAILED LOGGING FOR DEBUGGING
+    console.log('=== DETAILED SHOPIFY RESPONSE DEBUG ===');
+    console.log('customerCreate exists:', !!customerCreate);
+    console.log('customerCreate.customer exists:', !!customerCreate?.customer);
+    console.log('userErrors:', userErrors);
+    console.log('userErrors.length:', userErrors.length);
+    console.log('Full customerCreate object:', customerCreate);
+    console.log('=======================================');
+
     // Check for user errors first (these are validation errors, not system errors)
     if (userErrors.length > 0) {
       console.log('Shopify validation errors:', userErrors);
       return NextResponse.json({ error: userErrors[0].message }, { status: 400 });
     }
 
-    // Check if customer was created successfully
-    // The key fix: check if customerCreate exists AND either has a customer or no errors
-    if (customerCreate && (!userErrors || userErrors.length === 0)) {
-      // Even if customer is null, if there are no userErrors, it might still be successful
-      // Let's check both conditions
-      if (customerCreate.customer) {
-        console.log('Customer created successfully:', customerCreate.customer);
-        return NextResponse.json({ 
-          success: true, 
-          message: 'You are on the waitlist!',
-          customer: customerCreate.customer 
-        }, { status: 201 });
-      } else {
-        // Customer is null but no errors - this might happen if customer already exists
-        // Check if this is actually a success case
-        console.log('Customer creation completed but customer object is null');
-        return NextResponse.json({ 
-          success: true, 
-          message: 'You are on the waitlist!' 
-        }, { status: 201 });
-      }
+    // SIMPLIFIED SUCCESS CHECK - if customerCreate exists and no userErrors, it's success
+    if (customerCreate) {
+      console.log('✅ SUCCESS: Customer operation completed successfully');
+      return NextResponse.json({ 
+        success: true, 
+        message: 'You are on the waitlist!',
+        customer: customerCreate.customer || null
+      }, { status: 201 });
     }
 
     // If we get here, something unexpected happened
