@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-// We'll use a simple token for the session
 const SESSION_TOKEN_NAME = 'swambasic_session';
+
+// Generate a secure session token
+function generateSessionToken(sessionSecret: string): string {
+  const timestamp = Date.now().toString();
+  const randomToken = Math.random().toString(36).substring(2) + 
+                     Math.random().toString(36).substring(2) + 
+                     Math.random().toString(36).substring(2);
+  
+  // Combine timestamp, token, and secret, then base64 encode
+  const sessionData = `${timestamp}|${randomToken}|${sessionSecret}`;
+  return btoa(sessionData);
+}
 
 export async function POST(request: Request) {
   try {
@@ -22,18 +33,17 @@ export async function POST(request: Request) {
     
     // Check if the password is correct
     if (password === sitePassword) {
-      // Correct password. Set a secure cookie to grant access.
-      const cookieStore = cookies();
+      // Generate secure session token
+      const sessionToken = generateSessionToken(sessionSecret);
       
-      // The value can be simple, its existence is what matters. We'll sign it later for more security.
-      const sessionValue = `access_granted::${sessionSecret}`;
-
-     cookieStore.set(SESSION_TOKEN_NAME, "true", { // The value can be a simple "true"
+      // Set secure cookie
+      const cookieStore = cookies();
+      cookieStore.set(SESSION_TOKEN_NAME, sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         path: '/',
         sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24, // 24 hours (reduced from 7 days for security)
       });
       
       return NextResponse.json({ success: true }, { status: 200 });
@@ -44,6 +54,7 @@ export async function POST(request: Request) {
     }
 
   } catch (error) {
+    console.error('Access API error:', error);
     return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }

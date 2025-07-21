@@ -4,15 +4,15 @@ README.md
 code_dump.txt
 dump_project.py
 eslint.config.mjs
+middleware.ts
 next-env.d.ts
 next.config.mjs
 package.json
 postcss.config.mjs
 project_structure.txt
 public/
-  sculpture.glb
-  sculpture1.glb
-  sculpture2.glb
+  audio/
+    typing.wav
 src/
   app/
     (main)/
@@ -43,7 +43,10 @@ src/
     fonts/
   components/
     core/
+      AppHeightProvider.tsx
+      BackgroundMusicPlayer.tsx
       Footer.tsx
+      GlobalSoundEffects.tsx
       Header.tsx
       InteractiveLiquidBackground.tsx
     modules/
@@ -60,6 +63,9 @@ src/
         BrandManifesto.tsx
         FeaturedProducts.tsx
         HeroSection.tsx
+  hooks/
+    useMediaQuery.ts
+    useSound.ts
   lib/
     shopify.ts
   styles/

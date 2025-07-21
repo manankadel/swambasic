@@ -3,15 +3,15 @@
 ### .\.env.local ###
 
 # Shopify Storefront API (Public)
-NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN="pvt"
+NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN="544ace7efa190d01725e02d23a9a4ee2"
 NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN="swam-basic.myshopify.com"
 
 # Shopify Admin API (Private - DO NOT prefix with NEXT_PUBLIC_)
-SHOPIFY_ADMIN_ACCESS_TOKEN="pvt"
+SHOPIFY_ADMIN_ACCESS_TOKEN="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"
 
 # Site Access
-SITE_ACCESS_PASSWORD="pvt"
-SESSION_SECRET="GENERATE_A_RANDOM_32_CHARACTER_STRING_FOR_COOKIE_SIGNING"
+SITE_ACCESS_PASSWORD="12345677"
+SESSION_SECRET="hzKEiwAaoCvCr0EPnLzIpWBL10qmo5Fc"
 
 ### .\.gitignore ###
 
@@ -180,6 +180,55 @@ const eslintConfig = [
 export default eslintConfig;
 
 
+### .\middleware.ts ###
+
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+const SESSION_TOKEN_NAME = 'swambasic_session';
+const PROTECTED_ROUTES = ['/home', '/catalog', '/account', '/cart', '/contact']; // Add any other pages that need protection
+
+export function middleware(request: NextRequest) {
+  // Get the session cookie from the user's request
+  const sessionCookie = request.cookies.get(SESSION_TOKEN_NAME);
+  
+  // Get the pathname of the requested page (e.g., "/home")
+  const { pathname } = request.nextUrl;
+
+  // Check if the user is trying to access one of our protected routes
+  const isAccessingProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+
+  // THE SECURITY LOGIC:
+  // IF the user is trying to access a protected route AND they do NOT have a session cookie...
+  if (isAccessingProtectedRoute && !sessionCookie) {
+    // ...forcefully redirect them back to the root password page.
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // OPTIONAL BUT RECOMMENDED:
+  // IF the user HAS a session cookie AND they try to visit the password page again...
+  if (sessionCookie && pathname === '/') {
+    // ...send them directly to the homepage.
+    return NextResponse.redirect(new URL('/home', request.url));
+  }
+  
+  // If none of the above rules match, let the user proceed.
+  return NextResponse.next();
+}
+
+// This config ensures the middleware runs on all relevant pages.
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
+};
+
 ### .\next-env.d.ts ###
 
 /// <reference types="next" />
@@ -194,6 +243,19 @@ export default eslintConfig;
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
+  // We are telling Next.js that it is allowed to optimize
+  // and display images from Shopify's CDN.
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.shopify.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
@@ -210,27 +272,28 @@ export default nextConfig;
     "start": "next start",
     "lint": "next lint"
   },
-"dependencies": {
-  "@react-three/drei": "^9.107.0",
-  "@react-three/fiber": "^8.16.8",
-  "@shopify/hydrogen-react": "^2025.4.0",
-  "framer-motion": "^11.2.12",
-  "next": "14.2.4",
-  "react": "^18.2.0",
-  "react-dom": "^18.2.0",
-  "three": "^0.164.1"
-},
-"devDependencies": {
-  "@types/node": "^20",
-  "@types/react": "^18.2.0",
-  "@types/react-dom": "^18.2.0",
-  "@types/three": "^0.164.0",
-  "eslint": "^8",
-  "eslint-config-next": "14.2.4",
-  "postcss": "^8",
-  "tailwindcss": "^3.4.1",
-  "typescript": "^5"
-}
+  "dependencies": {
+    "@react-three/drei": "^9.107.0",
+    "@react-three/fiber": "^8.16.8",
+    "@shopify/hydrogen-react": "^2025.4.0",
+    "framer-motion": "^11.2.12",
+    "next": "14.2.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.164.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/three": "^0.164.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.4",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
 }
 
 
@@ -250,31 +313,13 @@ export default config;
 
 
 
-### .\public\sculpture.glb ###
+### .\public\audio\typing.wav ###
 
 
 
-### .\public\sculpture.glb ###
+### .\public\audio\typing.wav ###
 
-[Error reading file: 'utf-8' codec can't decode byte 0x9c in position 6000: invalid start byte]
-
-
-### .\public\sculpture1.glb ###
-
-
-
-### .\public\sculpture1.glb ###
-
-[Error reading file: 'utf-8' codec can't decode byte 0xee in position 9: invalid continuation byte]
-
-
-### .\public\sculpture2.glb ###
-
-
-
-### .\public\sculpture2.glb ###
-
-[Error reading file: 'utf-8' codec can't decode byte 0xd0 in position 12: invalid continuation byte]
+[Error reading file: 'utf-8' codec can't decode byte 0x92 in position 4: invalid start byte]
 
 
 ### .\src\app\(main)\account\addresses\page.tsx ###
@@ -310,7 +355,7 @@ export default function AccountLayout({
   return (
     <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
-        <h1 className="font-display text-5xl font-bold mb-12">Personal Hub</h1>
+        <h1 className="font-display text-4xl md:text-5xl font-bold mb-8 md:mb-12">Personal Hub</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Left Column: Navigation */}
           <aside className="md:col-span-1">
@@ -407,7 +452,7 @@ const CartPage = () => {
     <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         <h1 className="font-display text-5xl font-bold mb-12">Your Cart</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Left Section: Cart Items */}
           <div className="lg:col-span-2 flex flex-col gap-6">
             {placeholderCartItems.map(item => (
@@ -432,7 +477,7 @@ const CartPage = () => {
 
           {/* Right Section: Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-40 p-6 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
+             <div className="lg:sticky top-40 p-6 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
               <h2 className="font-display text-2xl font-bold">Summary</h2>
               <div className="mt-6 space-y-2 font-mono text-sm text-white/80">
                 <div className="flex justify-between">
@@ -547,12 +592,12 @@ export async function POST(request: Request) {
       // The value can be simple, its existence is what matters. We'll sign it later for more security.
       const sessionValue = `access_granted::${sessionSecret}`;
 
-      cookieStore.set(SESSION_TOKEN_NAME, sessionValue, {
-        httpOnly: true, // Prevents client-side JS from accessing the cookie
-        secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-        path: '/',      // Available to the entire site
-        sameSite: 'strict', // Helps prevent CSRF attacks
-        maxAge: 60 * 60 * 24 * 7, // Cookie expires in 7 days
+     cookieStore.set(SESSION_TOKEN_NAME, "true", { // The value can be a simple "true"
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
       });
       
       return NextResponse.json({ success: true }, { status: 200 });
@@ -572,19 +617,18 @@ export async function POST(request: Request) {
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  // 1. Extract the email from the request body
-  const { email } = await request.json();
+  // 1. Extract both email and the new phone field
+  const { email, phone } = await request.json();
 
   if (!email) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
   }
 
-  // 2. Prepare the data for the Shopify Admin API
+  // 2. Prepare the data for Shopify
   const adminApiToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
   const storeDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
   const adminApiUrl = `https://${storeDomain}/admin/api/2025-07/graphql.json`;
 
-  // This is the GraphQL mutation to create a new customer with tags
   const mutation = {
     query: `
       mutation customerCreate($input: CustomerInput!) {
@@ -592,6 +636,7 @@ export async function POST(request: Request) {
           customer {
             id
             email
+            phone
             tags
           }
           userErrors {
@@ -604,38 +649,37 @@ export async function POST(request: Request) {
     variables: {
       input: {
         email: email,
-        tags: ["waitlist", "pre-launch"], // The required tags
+        phone: phone, // Pass the phone number to Shopify
+        tags: ["waitlist", "pre-launch"],
       },
     },
   };
 
-  // 3. Make the secure server-to-server API call
+  // 3. Make the API call
   try {
     const response = await fetch(adminApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': adminApiToken!, // The '!' asserts that the token exists
+        'X-Shopify-Access-Token': adminApiToken!,
       },
       body: JSON.stringify(mutation),
     });
 
     const data = await response.json();
 
-    // 4. Handle Shopify's response
+    // 4. Handle response
     if (data.errors) {
-        // This handles GraphQL-level errors
         console.error('GraphQL Errors:', data.errors);
         return NextResponse.json({ error: 'Failed to create customer in Shopify.' }, { status: 500 });
     }
     
     const userErrors = data.data.customerCreate.userErrors;
     if (userErrors && userErrors.length > 0) {
-      // This handles validation errors like an email already being taken
       return NextResponse.json({ error: userErrors[0].message }, { status: 400 });
     }
 
-    // 5. Success!
+    // 5. Success
     return NextResponse.json({ success: true, customer: data.data.customerCreate.customer }, { status: 201 });
 
   } catch (error) {
@@ -663,7 +707,7 @@ export const fontUnbounded = Unbounded({
 
 // DEFINE THE NEW LOCAL FONT HERE
 export const fontGenoa = localFont({
-  src: '../assets/fonts/genoa.ttf', // <-- PATH TO YOUR FONT FILE
+  src: '../assets/fonts/genoa.otf', // <-- PATH TO YOUR FONT FILE
   display: 'swap',
   variable: '--font-genoa', // <-- CSS variable we will use
 });
@@ -674,11 +718,6 @@ export const fontGenoa = localFont({
 @tailwind components;
 @tailwind utilities;
 
-/*
-  THE FIX IS HERE:
-  This explicitly removes the default browser margin from the body and html tags,
-  and prevents any accidental horizontal scrollbars.
-*/
 html, body {
   padding: 0;
   margin: 0;
@@ -689,14 +728,35 @@ body {
   @apply bg-black text-foreground;
 }
 
+/* NEW: Shimmer/Glow animation for text */
+.animate-shimmer-glow {
+  background: linear-gradient(90deg, #ffffff 25%, #888888 50%, #ffffff 75%);
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-glow 8s linear infinite;
+}
+
+@keyframes shimmer-glow {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 ### .\src\app\layout.tsx ###
 
 import type { Metadata } from 'next'
 import './globals.css'
-// Import ALL the fonts we are using
 import { fontPoppins, fontUnbounded, fontGenoa } from './fonts';
+import { BackgroundMusicPlayer } from '@/components/core/BackgroundMusicPlayer';
+import { GlobalSoundEffects } from '@/components/core/GlobalSoundEffects';
+import { AppHeightProvider } from '@/components/core/AppHeightProvider'; // <-- IMPORT THE NEW PROVIDER
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'SWAMBASIC - Coming Soon',
   description: 'Luxury Streetwear. Join the waitlist.',
 }
@@ -707,17 +767,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    // THE FIX IS HERE:
-    // We must add the fontGenoa.variable to this list.
-    // This makes the CSS variable available to the entire app.
     <html lang="en" className={[
         fontPoppins.variable, 
         fontUnbounded.variable, 
         fontGenoa.variable, 
         'dark'
       ].join(' ')}>
-      <body style={{ margin: 0, padding: 0, overflow: 'hidden' }}>
-        {children}
+      <body>
+        {/* WRAP everything in the AppHeightProvider */}
+        <AppHeightProvider>
+            <GlobalSoundEffects />
+            {children}
+            <BackgroundMusicPlayer />
+        </AppHeightProvider>
       </body>
     </html>
   )
@@ -727,104 +789,578 @@ export default function RootLayout({
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation'; // Import the router
+import { useRouter } from 'next/navigation';
 import { GatewayAnimation } from '@/components/modules/GatewayAnimation';
 import { WaitlistForm } from '@/components/modules/WaitlistForm';
 import CountdownTimer from '@/components/modules/CountdownTimer';
 import { InteractiveLiquidBackground } from '@/components/core/InteractiveLiquidBackground';
+import { useSound } from '@/hooks/useSound';
 
-// THIS IS THE NEW, FUNCTIONAL COMPONENT
-// This component is inside src/app/page.tsx
+// ==================================================================
+// PERFORMANCE CONSTANTS
+// ==================================================================
+const ANIMATION_CONFIG = {
+  CONTENT_DELAY: 2500,
+  MOTION_DURATION: 1.0,
+  MOTION_EASE: 'easeInOut',
+  FADE_DELAY: 0.5,
+} as const;
+
+const MOTION_VARIANTS = {
+  content: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { 
+      duration: ANIMATION_CONFIG.MOTION_DURATION, 
+      ease: ANIMATION_CONFIG.MOTION_EASE, 
+      delay: ANIMATION_CONFIG.FADE_DELAY 
+    }
+  },
+  layout: {
+    transition: { 
+      duration: ANIMATION_CONFIG.MOTION_DURATION, 
+      ease: ANIMATION_CONFIG.MOTION_EASE 
+    }
+  }
+} as const;
+
+const STYLES = {
+  main: {
+    height: 'calc(var(--app-height, 100vh))',
+    contain: 'layout style paint',
+    willChange: 'auto'
+  },
+  input: {
+    contain: 'layout style'
+  },
+  button: {
+    contain: 'layout style',
+    willChange: 'color, opacity'
+  }
+} as const;
+
+// ==================================================================
+// OPTIMIZED ARROW ICON COMPONENT
+// ==================================================================
+const ArrowIcon = () => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ pointerEvents: 'none' }}
+  >
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+    <polyline points="12 5 19 12 12 19"></polyline>
+  </svg>
+);
+
+// ==================================================================
+// OPTIMIZED PASSWORD ACCESS COMPONENT
+// ==================================================================
 const PasswordAccess = () => {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Optimized sound hook with lazy loading
+  const playHoverSound = useSound('/audio/hover.mp3', 0.3);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Memoized input change handler
+  const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (error) setError(''); // Clear error on new input
+  }, [error]);
+
+  // Optimized submit handler with abort controller
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!password.trim() || isLoading) return;
+    
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
     setIsLoading(true);
     setError('');
+    
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+    
+    try {
+      const response = await fetch('/api/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+        signal: abortControllerRef.current.signal,
+      });
 
-    const response = await fetch('/api/access', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
-
-    if (response.ok) {
-      router.push('/home');
-    } else {
-      const data = await response.json();
-      setError(data.error || 'Invalid access code.');
+      if (response.ok) {
+        // Use replace for better performance
+        router.replace('/home');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Invalid access code.');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        setError('Connection error. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
     }
-  };
+  }, [password, isLoading, router]);
+
+  // Optimized hover handler
+  const handleMouseEnter = useCallback(() => {
+    if (!isLoading) playHoverSound();
+  }, [playHoverSound, isLoading]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Memoized form elements
+  const formContent = useMemo(() => (
+    <form onSubmit={handleSubmit} className="flex items-center gap-4">
+      <input
+        type="password"
+        value={password}
+        onChange={handlePasswordChange}
+        placeholder="Enter Access Code"
+        className="font-sans w-full max-w-[240px] bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50"
+        disabled={isLoading}
+        autoComplete="current-password"
+        style={STYLES.input}
+      />
+      <button
+        type="submit"
+        disabled={isLoading || !password.trim()}
+        className="text-foreground/80 hover:text-white transition-colors disabled:opacity-50"
+        onMouseEnter={handleMouseEnter}
+        style={STYLES.button}
+        aria-label="Submit access code"
+      >
+        <ArrowIcon />
+      </button>
+    </form>
+  ), [password, isLoading, handleSubmit, handlePasswordChange, handleMouseEnter]);
 
   return (
     <div className="mt-8 flex flex-col items-center">
-      <form onSubmit={handleSubmit} className="flex items-center gap-4">
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter Access Code"
-          className="font-sans w-64 bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50"
-          disabled={isLoading}
-        />
-        {/* THE NEW SUBMIT BUTTON */}
-        <button type="submit" disabled={isLoading} className="text-foreground/80 hover:text-white transition-colors disabled:opacity-50">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </button>
-      </form>
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {formContent}
+      {error && (
+        <p className="mt-2 text-sm text-red-400" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 };
 
+// ==================================================================
+// OPTIMIZED MAIN GATEWAY PAGE COMPONENT
+// ==================================================================
 export default function GatewayPage() {
   const [showContent, setShowContent] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Optimized content reveal effect
   useEffect(() => {
-    const timer = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       setShowContent(true);
-    }, 2500);
-    return () => clearTimeout(timer);
+    }, ANIMATION_CONFIG.CONTENT_DELAY);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, []);
-  
+
+  // Memoized content section
+  const contentSection = useMemo(() => (
+    <AnimatePresence mode="wait">
+      {showContent && (
+        <motion.div
+          className="flex w-full max-w-sm flex-col items-center text-center"
+          {...MOTION_VARIANTS.content}
+        >
+          <p className="font-sans text-sm md:text-xl mt-3 mb-4 md:mt-6 md:mb-6 text-foreground/80 animate-shimmer-glow px-2">
+            Join the waitlist for exclusive access.
+          </p>
+          
+          <div className="mb-4 md:mb-6">
+            <CountdownTimer />
+          </div>
+          
+          <div className="w-full flex justify-center px-2">
+            <WaitlistForm />
+          </div>
+          
+          <div className="mt-4 md:mt-8 mb-4 md:mb-0">
+            <PasswordAccess />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  ), [showContent]);
+
+  // Memoized main layout
+  const mainLayout = useMemo(() => (
+    <main 
+      style={STYLES.main}
+      className="flex flex-col items-center justify-start overflow-hidden p-4 pt-2 md:pt-0 md:grid md:place-items-center"
+    >
+      <div className="flex w-full flex-col items-center mt-4 md:mt-0">
+        <motion.div layout {...MOTION_VARIANTS.layout}>
+          <GatewayAnimation />
+        </motion.div>
+        {contentSection}
+      </div>
+    </main>
+  ), [contentSection]);
+
   return (
-    <>
-      <InteractiveLiquidBackground /> 
-      <main className="flex min-h-screen flex-col items-center justify-center relative z-10">
-        <div className="p-6 flex flex-col items-center justify-center">
-            <div className="absolute top-1/2 -translate-y-[150px] sm:-translate-y-40">
-                <GatewayAnimation />
-            </div>
-            <AnimatePresence>
-                {showContent && (
-                <motion.div
-                    className="flex flex-col items-center text-center w-full absolute top-1/2"
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, ease: 'easeInOut' }}
-                >
-                    <p className="font-sans mb-6 text-foreground/80">Join the waitlist for exclusive access.</p>
-                    <div className="mb-8"> <CountdownTimer /> </div>
-                    <div className="w-full flex justify-center"> <WaitlistForm /> </div>
-                    <div> <PasswordAccess /> </div>
-                </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-      </main>
-    </>
+    <div className="min-h-screen md:h-auto">
+      <InteractiveLiquidBackground />
+      {mainLayout}
+    </div>
   );
 }
+
+### .\src\components\core\AppHeightProvider.tsx ###
+
+"use client";
+
+import { useEffect } from 'react';
+
+/**
+ * This component solves the "dynamic viewport" problem on mobile browsers.
+ * It measures the actual window.innerHeight and sets it as a CSS variable (`--app-height`).
+ * This ensures our layout is always based on the REAL visible screen space.
+ */
+export const AppHeightProvider = ({ children }: { children: React.ReactNode }) => {
+  useEffect(() => {
+    const setAppHeight = () => {
+      // Get the actual inner height of the window
+      const appHeight = `${window.innerHeight}px`;
+      // Set it as a CSS variable on the root HTML element
+      document.documentElement.style.setProperty('--app-height', appHeight);
+    };
+
+    // Set the height when the component mounts
+    setAppHeight();
+
+    // Also set it whenever the window is resized
+    window.addEventListener('resize', setAppHeight);
+
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener('resize', setAppHeight);
+    };
+  }, []);
+
+  return <>{children}</>;
+};
+
+### .\src\components\core\BackgroundMusicPlayer.tsx ###
+
+"use client";
+
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+
+// ==================================================================
+// OPTIMIZED ICON COMPONENTS
+// ==================================================================
+const SoundOnIcon = () => (
+  <svg 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ pointerEvents: 'none' }}
+  >
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ pointerEvents: 'none' }}
+  >
+    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+  </svg>
+);
+
+// ==================================================================
+// PERFORMANCE CONSTANTS
+// ==================================================================
+const AUDIO_CONFIG = {
+  START_TIME: 20,
+  PRELOAD: 'auto',
+  VOLUME: 0.7, // Slightly lower volume for better UX
+  FADE_IN_DURATION: 1000, // 1 second fade in
+};
+
+const BUTTON_STYLES: React.CSSProperties = {
+  position: 'fixed',
+  bottom: '24px',
+  right: '24px',
+  zIndex: 50,
+  padding: '12px',
+  borderRadius: '50%',
+  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  backdropFilter: 'blur(8px)',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  willChange: 'transform, opacity',
+  contain: 'layout style paint',
+};
+
+// ==================================================================
+// OPTIMIZED BACKGROUND MUSIC PLAYER
+// ==================================================================
+export const BackgroundMusicPlayer = () => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const userInteractedRef = useRef(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  // ==================================================================
+  // OPTIMIZED FADE IN FUNCTION
+  // ==================================================================
+  const fadeInAudio = useCallback((audio: HTMLAudioElement) => {
+    audio.volume = 0;
+    const steps = 20;
+    const volumeStep = AUDIO_CONFIG.VOLUME / steps;
+    const timeStep = AUDIO_CONFIG.FADE_IN_DURATION / steps;
+    
+    let currentStep = 0;
+    
+    if (fadeIntervalRef.current) {
+      clearInterval(fadeIntervalRef.current);
+    }
+    
+    fadeIntervalRef.current = setInterval(() => {
+      currentStep++;
+      audio.volume = Math.min(volumeStep * currentStep, AUDIO_CONFIG.VOLUME);
+      
+      if (currentStep >= steps) {
+        if (fadeIntervalRef.current) {
+          clearInterval(fadeIntervalRef.current);
+          fadeIntervalRef.current = null;
+        }
+      }
+    }, timeStep);
+  }, []);
+
+  // ==================================================================
+  // OPTIMIZED AUTOPLAY FUNCTION
+  // ==================================================================
+  const attemptAutoplay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || hasError) return;
+
+    try {
+      // Set start time
+      audio.currentTime = AUDIO_CONFIG.START_TIME;
+      
+      // Multiple autoplay strategies for maximum compatibility
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        await playPromise;
+        setIsPlaying(true);
+        fadeInAudio(audio);
+      }
+    } catch (error) {
+      console.warn("Autoplay prevented:", error);
+      setIsPlaying(false);
+      
+      // Retry autoplay on next user interaction
+      const handleFirstInteraction = () => {
+        if (!userInteractedRef.current) {
+          userInteractedRef.current = true;
+          attemptAutoplay();
+          document.removeEventListener('click', handleFirstInteraction);
+          document.removeEventListener('touchstart', handleFirstInteraction);
+          document.removeEventListener('keydown', handleFirstInteraction);
+        }
+      };
+      
+      document.addEventListener('click', handleFirstInteraction, { passive: true });
+      document.addEventListener('touchstart', handleFirstInteraction, { passive: true });
+      document.addEventListener('keydown', handleFirstInteraction, { passive: true });
+    }
+  }, [fadeInAudio, hasError]);
+
+  // ==================================================================
+  // OPTIMIZED PLAY/PAUSE TOGGLE
+  // ==================================================================
+  const togglePlayPause = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || hasError) return;
+
+    try {
+      if (isPlaying) {
+        audio.pause();
+        setIsPlaying(false);
+        if (fadeIntervalRef.current) {
+          clearInterval(fadeIntervalRef.current);
+          fadeIntervalRef.current = null;
+        }
+      } else {
+        // Set start time if at beginning
+        if (audio.currentTime < AUDIO_CONFIG.START_TIME) {
+          audio.currentTime = AUDIO_CONFIG.START_TIME;
+        }
+        
+        await audio.play();
+        setIsPlaying(true);
+        fadeInAudio(audio);
+      }
+      
+      userInteractedRef.current = true;
+    } catch (error) {
+      console.error("Error toggling audio:", error);
+      setHasError(true);
+    }
+  }, [isPlaying, fadeInAudio, hasError]);
+
+  // ==================================================================
+  // OPTIMIZED EFFECTS
+  // ==================================================================
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Audio event handlers
+    const handleCanPlayThrough = () => {
+      setIsLoaded(true);
+      if (!userInteractedRef.current) {
+        // Small delay to ensure audio is fully ready
+        retryTimeoutRef.current = setTimeout(attemptAutoplay, 100);
+      }
+    };
+
+    const handleError = () => {
+      console.error("Audio loading error");
+      setHasError(true);
+      setIsLoaded(false);
+    };
+
+    const handleEnded = () => {
+      // Reset to start time when song ends (for looping)
+      audio.currentTime = AUDIO_CONFIG.START_TIME;
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    // Add event listeners
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    // Preload audio
+    audio.load();
+
+    // Cleanup
+    return () => {
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, [attemptAutoplay]);
+
+  // ==================================================================
+  // MEMOIZED COMPONENTS
+  // ==================================================================
+  const buttonIcon = useMemo(() => {
+    if (hasError) return <PlayIcon />;
+    return isPlaying ? <SoundOnIcon /> : <PlayIcon />;
+  }, [isPlaying, hasError]);
+
+  const buttonAriaLabel = useMemo(() => {
+    if (hasError) return "Audio unavailable";
+    return isPlaying ? "Pause music" : "Play music";
+  }, [isPlaying, hasError]);
+
+  // Don't render if audio failed to load
+  if (hasError) {
+    return null;
+  }
+
+  return (
+    <>
+      <audio 
+        ref={audioRef}
+        src="/audio/background-music.mp3"
+        loop
+        preload={AUDIO_CONFIG.PRELOAD}
+        style={{ display: 'none' }}
+      />
+      
+      <button
+        onClick={togglePlayPause}
+        style={BUTTON_STYLES}
+        className="text-white/70 hover:text-white hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm"
+        aria-label={buttonAriaLabel}
+        disabled={!isLoaded && !hasError}
+        type="button"
+      >
+        {buttonIcon}
+      </button>
+    </>
+  );
+};
 
 ### .\src\components\core\Footer.tsx ###
 
@@ -866,56 +1402,151 @@ export const Footer = () => {
   );
 };
 
+### .\src\components\core\GlobalSoundEffects.tsx ###
+
+"use client";
+
+import { useEffect, useRef } from 'react';
+
+/**
+ * This component attaches global event listeners to play sounds
+ * for universal actions like clicking and typing anywhere on the page.
+ * 
+ * LATENCY FIX: Audio objects are now pre-loaded and reused via useRef.
+ * On each event, we rewind the audio to the start (`currentTime = 0`) and play,
+ * eliminating the delay of creating a new Audio() object each time.
+ */
+export const GlobalSoundEffects = () => {
+  const clickSoundRef = useRef<HTMLAudioElement | null>(null);
+  const typingSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Effect to pre-load the audio objects on component mount
+  useEffect(() => {
+    // Check if window is defined to ensure this runs only on the client
+    if (typeof window !== 'undefined') {
+      clickSoundRef.current = new Audio('/audio/click.mp3');
+      clickSoundRef.current.volume = 0.5;
+
+      typingSoundRef.current = new Audio('/audio/typing.wav');
+      typingSoundRef.current.volume = 0.4;
+    }
+  }, []); // Empty dependency array ensures this runs only once
+
+  useEffect(() => {
+    const handleMouseDown = () => {
+      if (clickSoundRef.current) {
+        clickSoundRef.current.currentTime = 0.1; // Rewind to start
+        clickSoundRef.current.play().catch(e => console.error("Could not play click sound:", e));
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isTypingKey = event.key.length === 1 || event.key === 'Backspace';
+      if (isTypingKey && typingSoundRef.current) {
+        typingSoundRef.current.currentTime = 0; // Rewind to start
+        typingSoundRef.current.play().catch(e => console.error("Could not play typing sound:", e));
+      }
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // We don't need dependencies as the refs are stable
+
+  return null;
+};
+
 ### .\src\components\core\Header.tsx ###
 
 "use client";
 import Link from 'next/link';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Placeholders for icons
+// Icons
 const UserIcon = () => <span>AC</span>;
-const WishlistIcon = () => <span>WS</span>;
 const CartIcon = () => <span>CT</span>;
+const MenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
+const CloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
 export const Header = () => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     return (
-        <header className="fixed top-0 left-0 w-full z-50 p-6">
-            {/* 
-              THE FIX FOR ROUNDNESS IS HERE:
-              - Changed 'rounded-md' to 'rounded-xl' for a softer, more noticeable curve.
-            */}
-            <div className="mx-auto max-w-7xl px-6 py-4 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-sm">
-                <nav className="flex justify-between items-center">
-                    
-                    {/* Left Navigation */}
-                    <div className="flex items-center gap-8 font-sans text-sm uppercase tracking-wider text-white/80">
-                        <Link href="/catalog" className="hover:text-white transition-colors">Catalog</Link>
-                        <Link href="/contact" className="hover:text-white transition-colors">Reach Out</Link>
-                    </div>
+        <>
+            <header className="fixed top-0 left-0 w-full z-50 p-6">
+                <div className="mx-auto max-w-7xl px-6 py-4 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-sm">
+                    {/* 
+                      THE FIX FOR THE OVERLAP IS HERE:
+                      - We are now using a 3-column CSS Grid.
+                      - This is the professional way to ensure the center element never overlaps the sides.
+                    */}
+                    <nav className="grid grid-cols-3 items-center">
+                        
+                        {/* Left Column */}
+                        <div className="flex justify-start">
+                            {/* DESKTOP: Left Navigation */}
+                            <div className="hidden md:flex items-center gap-8 font-sans text-sm uppercase tracking-wider text-white/80">
+                                <Link href="/catalog" className="hover:text-white transition-colors">Catalog</Link>
+                                <Link href="/contact" className="hover:text-white transition-colors">Reach Out</Link>
+                            </div>
+                            {/* MOBILE: Hamburger Menu Icon */}
+                            <div className="md:hidden">
+                                <button onClick={() => setIsMenuOpen(true)} className="text-white">
+                                    <MenuIcon />
+                                </button>
+                            </div>
+                        </div>
 
-                    {/* Center: Logo */}
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                        <Link href="/home">
-                            {/*
-                              THE FIX FOR THE GLOW IS HERE:
-                              - Added a custom text-shadow with a very soft, white glow.
-                            */}
-                            <span 
-                                className="font-display text-2xl font-bold text-white"
-                                style={{ textShadow: '0 0 10px rgba(255, 255, 255, 1)' }}
-                            >
-                                SWAMBASIC
-                            </span>
-                        </Link>
-                    </div>
+                        {/* Center Column: Logo */}
+                        <div className="flex justify-center">
+                            <Link href="/home">
+                                {/* 
+                                  THE FIX FOR THE GLOW IS HERE:
+                                  - The 'style' object with the textShadow is restored.
+                                */}
+                                <span 
+                                    className="font-display font-bold text-white text-xl md:text-2xl"
+                                    style={{ textShadow: '0 0 15px rgba(255, 255, 255, 1)' }}
+                                >
+                                    SWAMBASIC
+                                </span>
+                            </Link>
+                        </div>
 
-                    {/* Right: User Actions */}
-                    <div className="flex items-center gap-8 font-sans text-sm text-white/80">
-                        <Link href="/account" className="hover:text-white transition-colors"><UserIcon /></Link>
-                        <Link href="/cart" className="hover:text-white transition-colors"><CartIcon /></Link>
-                    </div>
-                </nav>
-            </div>
-        </header>
+                        {/* Right Column: User Actions */}
+                        <div className="flex justify-end items-center gap-6 md:gap-8 font-sans text-sm text-white/80">
+                            <Link href="/account" className="hover:text-white transition-colors"><UserIcon /></Link>
+                            <Link href="/cart" className="hover:text-white transition-colors"><CartIcon /></Link>
+                        </div>
+                    </nav>
+                </div>
+            </header>
+
+            {/* MOBILE: Full-screen Menu Overlay (No changes needed here) */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 p-6"
+                    >
+                        <div className="flex justify-end">
+                            <button onClick={() => setIsMenuOpen(false)} className="text-white"><CloseIcon /></button>
+                        </div>
+                        <nav className="flex flex-col items-center justify-center h-full gap-8 text-white font-display text-3xl uppercase">
+                            <Link href="/catalog" onClick={() => setIsMenuOpen(false)}>Catalog</Link>
+                            <Link href="/contact" onClick={() => setIsMenuOpen(false)}>Reach Out</Link>
+                        </nav>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 
@@ -1065,7 +1696,7 @@ import { useState, useEffect } from 'react';
 
 const CountdownUnit = ({ value, label }: { value: string, label: string }) => (
     <div className="flex flex-col items-center">
-        <span className="font-display font-black text-4xl md:text-6xl tracking-tighter">
+        <span className="font-display font-black text-3xl md:text-6xl tracking-tighter">
             {value}
         </span>
         <span className="font-sans text-xs text-foreground/50 tracking-widest mt-1">
@@ -1076,7 +1707,7 @@ const CountdownUnit = ({ value, label }: { value: string, label: string }) => (
 
 const CountdownTimer = () => {
   // SET YOUR LAUNCH DATE HERE
-  const launchDate = new Date("2025-07-21T12:00:00Z").getTime();
+  const launchDate = new Date("2025-08-14T12:00:00Z").getTime();
   const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
 
   useEffect(() => {
@@ -1122,105 +1753,217 @@ export default CountdownTimer;
 
 import { motion } from "framer-motion";
 import Image from 'next/image';
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
-// Variants for the main container to orchestrate the sequence
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      delayChildren: 1.2, 
-      staggerChildren: 1.2,
-    },
-  },
-};
+// ==================================================================
+// OPTIMIZED CONSTANTS AND VARIANTS
+// ==================================================================
 
-// Variants for the logo container
-const logoVariants = {
-  hidden: {
-    width: 0,
-    opacity: 0,
-    scale: 0,
+// Pre-computed variants for better performance
+const DESKTOP_VARIANTS = {
+  container: {
+    hidden: {},
+    visible: { transition: { delayChildren: 1.2, staggerChildren: 1.2 } },
   },
-  visible: {
-    width: 'auto',
-    opacity: 1,
-    scale: 1,
-    transition: {
-      duration: 1.2,
-      ease: "easeInOut", // THIS IS THE FIX. Replaced the invalid curve.
-    },
-  },
-};
-
-// Variants for the spinning logo image itself
-const imageVariants = {
-    hidden: { rotate: -180 },
+  logoContainer: {
+    hidden: { width: 0, opacity: 0, scale: 0 },
     visible: {
-        rotate: 0,
-        transition: {
-            duration: 1,
-            delay: 1.2,
-        }
-    }
-}
+      width: 'auto', 
+      opacity: 1, 
+      scale: 1,
+      transition: { duration: 1.2, ease: "easeInOut" },
+    },
+  },
+  image: {
+    hidden: { rotate: -180 },
+    visible: { rotate: 0, transition: { duration: 1, delay: 1.2 } }
+  }
+};
 
-export const GatewayAnimation = () => {
-  const text = "SWAMBASIC";
+const MOBILE_VARIANTS = {
+  container: {
+    visible: {
+      transition: {
+        staggerChildren: 0.6,
+      }
+    }
+  },
+  logoContainer: {
+    hidden: { opacity: 0, scale: 0.5 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 1.0, ease: "easeInOut", delay: 0.4 } }
+  },
+  logoRotation: {
+    hidden: { rotate: -180 },
+    visible: { rotate: 0, transition: { duration: 1.2, ease: "easeInOut" } }
+  },
+  text: {
+    hidden: { y: "100%", opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: "easeInOut" } }
+  }
+};
+
+// Pre-computed text split for desktop
+const TEXT = "SWAMBASIC";
+const TEXT_FIRST_PART = TEXT.slice(0, 4).split('');
+const TEXT_SECOND_PART = TEXT.slice(4).split('');
+
+// ==================================================================
+// OPTIMIZED DESKTOP LAYOUT
+// ==================================================================
+const DesktopLayout = () => {
+  // Memoized letter animations to prevent re-renders
+  const firstPartLetters = useMemo(() => 
+    TEXT_FIRST_PART.map((letter, index) => (
+      <motion.span 
+        key={`first-${index}`}
+        className="inline-block" 
+        initial={{ y: "100%" }} 
+        animate={{ y: 0 }} 
+        transition={{ duration: 0.5, delay: index * 0.1 }}
+      >
+        {letter}
+      </motion.span>
+    )), []
+  );
+
+  const secondPartLetters = useMemo(() => 
+    TEXT_SECOND_PART.map((letter, index) => (
+      <motion.span 
+        key={`second-${index}`}
+        className="inline-block" 
+        initial={{ y: "100%" }} 
+        animate={{ y: 0 }} 
+        transition={{ duration: 0.5, delay: (4 + index) * 0.1 }}
+      >
+        {letter}
+      </motion.span>
+    )), []
+  );
 
   return (
-    <motion.div
-      layout // Smoothly animates layout changes
-      className="flex items-center justify-center"
-      variants={containerVariants}
-      initial="hidden"
+    <motion.div 
+      layout
+      className="flex items-center justify-center" 
+      variants={DESKTOP_VARIANTS.container} 
+      initial="hidden" 
       animate="visible"
     >
-      {/* Renders "SWAM" */}
-      <span className="font-heading text-4xl md:text-6xl font-extrabold tracking-widest uppercase overflow-hidden">
-        {text.slice(0, 4).split('').map((letter, index) => (
-          <motion.span
-            key={index}
-            className="inline-block"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-          >
-            {letter}
-          </motion.span>
-        ))}
+      <span className="font-heading text-4xl md:text-6xl font-extrabold tracking-widest uppercase overflow-hidden text-shadow-glow">
+        {firstPartLetters}
       </span>
-      
-      {/* The Logo Container that grows to push the text apart */}
-      <motion.div
-        className="flex items-center justify-center mx-3 md:mx-5"
-        variants={logoVariants}
+      <motion.div 
+        className="flex items-center justify-center mx-3 md:mx-4" 
+        variants={DESKTOP_VARIANTS.logoContainer}
       >
-        <motion.div variants={imageVariants}>
-            <Image 
-                src="/logo-rotating.gif" 
-                alt="SWAMBASIC Logo" 
-                width={220} 
-                height={220}
-                unoptimized={true}
-            />
+        <motion.div 
+          variants={DESKTOP_VARIANTS.image} 
+          className="relative w-36 h-36 md:w-56 md:h-56"
+        >
+          <Image 
+            src="/logo-rotating.GIF" 
+            alt="SWAMBASIC Logo" 
+            fill 
+            className="object-contain" 
+            unoptimized={true}
+            priority={true}
+            loading="eager"
+            sizes="(max-width: 768px) 144px, 224px"
+          />
+        </motion.div>
+      </motion.div>
+      <span className="font-heading text-4xl md:text-6xl font-extrabold tracking-widest uppercase overflow-hidden text-shadow-glow">
+        {secondPartLetters}
+      </span>
+    </motion.div>
+  );
+};
+
+// ==================================================================
+// OPTIMIZED MOBILE LAYOUT
+// ==================================================================
+const MobileLayout = () => {
+  return (
+    <motion.div 
+      className="flex flex-col items-center justify-center gap-0"
+      initial="hidden"
+      animate="visible"
+      variants={MOBILE_VARIANTS.container}
+    >
+      <motion.div variants={MOBILE_VARIANTS.logoContainer}>
+        <motion.div
+          className="relative w-60 h-60"
+          variants={MOBILE_VARIANTS.logoRotation}
+        >
+          <Image 
+            src="/logo-rotating.GIF" 
+            alt="SWAMBASIC Logo" 
+            fill 
+            className="object-contain" 
+            unoptimized={true}
+            priority={true}
+            loading="eager"
+            sizes="240px"
+          />
         </motion.div>
       </motion.div>
 
-      {/* Renders "BASIC" */}
-      <span className="font-heading text-4xl md:text-6xl font-extrabold tracking-widest uppercase overflow-hidden">
-        {text.slice(4).split('').map((letter, index) => (
-          <motion.span
-            key={index}
-            className="inline-block"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            transition={{ duration: 0.5, delay: (4 + index) * 0.1 }} // Delay continues from "SWAM"
-          >
-            {letter}
-          </motion.span>
-        ))}
-      </span>
+      <div className="overflow-hidden">
+        <motion.span 
+          className="font-heading text-4xl font-extrabold tracking-widest uppercase inline-block text-shadow-glow"
+          variants={MOBILE_VARIANTS.text}
+        >
+          {TEXT}
+        </motion.span>
+      </div>
     </motion.div>
+  );
+};
+
+// ==================================================================
+// OPTIMIZED MAIN COMPONENT
+// ==================================================================
+export const GatewayAnimation = () => {
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const [hasMounted, setHasMounted] = useState(false);
+
+  // Optimized mount effect
+  useEffect(() => {
+    const timer = requestAnimationFrame(() => {
+      setHasMounted(true);
+    });
+    return () => cancelAnimationFrame(timer);
+  }, []);
+
+  // Memoized layout component selection
+  const LayoutComponent = useMemo(() => {
+    if (!hasMounted) return null;
+    return isMobile ? MobileLayout : DesktopLayout;
+  }, [isMobile, hasMounted]);
+
+  // Optimized placeholder with exact dimensions
+  if (!hasMounted) {
+    return (
+      <div 
+        className="h-[184px] md:h-[224px]" 
+        style={{ 
+          contain: 'layout style paint',
+          willChange: 'auto'
+        }} 
+      />
+    );
+  }
+  
+  // Render with performance optimizations
+  return (
+    <div 
+      style={{ 
+        contain: 'layout style paint',
+        willChange: 'transform, opacity'
+      }}
+    >
+      {LayoutComponent && <LayoutComponent key={isMobile ? "mobile" : "desktop"} />}
+    </div>
   );
 };
 
@@ -1229,11 +1972,14 @@ export const GatewayAnimation = () => {
 "use client";
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useSound } from '@/hooks/useSound';
 
 export const WaitlistForm = () => {
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const playHoverSound = useSound('/audio/hover.mp3', 0.3);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1243,7 +1989,7 @@ export const WaitlistForm = () => {
     const response = await fetch('/api/waitlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, phone }),
     });
 
     const data = await response.json();
@@ -1252,6 +1998,7 @@ export const WaitlistForm = () => {
       setStatus('success');
       setMessage("You're on the list. We'll be in touch.");
       setEmail('');
+      setPhone('');
     } else {
       setStatus('error');
       setMessage(data.error || 'An unexpected error occurred.');
@@ -1260,26 +2007,46 @@ export const WaitlistForm = () => {
 
   return (
     <div className="w-full max-w-sm mt-4 text-center">
-      <form onSubmit={handleSubmit} className="flex items-stretch gap-4">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          required
-          // Updated glassmorphism styles for the input field
-          className="h-14 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-md focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
-          disabled={status === 'loading' || status === 'success'}
-        />
+      {/* The main form is a flex column with a gap */}
+      <form onSubmit={handleSubmit} className="flex flex-col items-stretch gap-4">
+        
+        {/* ================================================================== */}
+        {/* NEW LAYOUT: A horizontal flex container for the inputs.          */}
+        {/* ================================================================== */}
+        <div className='flex flex-row gap-4'>
+            {/* Input 1: Email (shorter width) */}
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              // UPDATED: rounded-3xl and adjusted placeholder text
+              className="h-11 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
+              disabled={status === 'loading' || status === 'success'}
+            />
+            {/* Input 2: Phone (shorter width) */}
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone"
+              // UPDATED: rounded-3xl and adjusted placeholder text
+              className="h-11 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
+              disabled={status === 'loading' || status === 'success'}
+            />
+        </div>
+
+        {/* The button is now a direct child of the flex column, placing it below */}
         <motion.button
           type="submit"
           disabled={status === 'loading' || status === 'success'}
-          // THE NEW GLASSMORPHISM & HOVER-ONLY GLOW STYLES
-          className="h-14 px-6 bg-white/10 border border-white/20 backdrop-blur-sm rounded-md font-sans font-semibold text-white transition-all duration-300 disabled:opacity-50 hover:border-white/40 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          // UPDATED: rounded-3xl
+          className="h-11 px-6 bg-white/10 border border-white/20 backdrop-blur-sm rounded-3xl font-sans font-semibold text-white transition-all duration-300 disabled:opacity-50 hover:border-white/40 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
           whileTap={{ scale: status !== 'loading' ? 0.95 : 1 }}
+          onMouseEnter={playHoverSound}
         >
-          {/* THE NEW, MORE EXCLUSIVE BUTTON TEXT */}
-          {status === 'loading' ? '...' : 'Secure My Spot'}
+          {status === 'loading' ? '...' : 'Join The Waitlist'}
         </motion.button>
       </form>
       
@@ -1561,12 +2328,12 @@ export const BrandManifesto = () => {
         viewport={{ once: true, amount: 0.5 }}
         transition={{ staggerChildren: 0.05 }}
       >
-        <h2 className="font-display font-bold text-5xl md:text-6xl mb-8">
+        <h2 className="font-display font-bold text-4xl md:text-6xl mb-8">
           <motion.span variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8 } } }}>
             The Philosophy
           </motion.span>
         </h2>
-        <p className="font-sans text-lg md:text-xl leading-relaxed text-white/70">
+        <p className="font-sans text-base md:text-xl leading-relaxed text-white/70">
           {text.split(' ').map((word, i) => (
             <motion.span
               key={i}
@@ -1589,39 +2356,85 @@ export const BrandManifesto = () => {
 ### .\src\components\modules\homepage\FeaturedProducts.tsx ###
 
 "use client";
+
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import Link from 'next/link';
 
-// This is a temporary placeholder for product data.
-// Later, we will fetch this directly from Shopify.
-const placeholderProducts = [
-  { id: 1, name: 'Obsidian Hoodie', price: '250.00', image: '/placeholder-product.png' },
-  { id: 2, name: 'Midnight Cargos', price: '300.00', image: '/placeholder-product.png' },
-  { id: 3, name: 'Onyx Tee', price: '120.00', image: '/placeholder-product.png' },
-  { id: 4, name: 'Shadow Cap', price: '80.00', image: '/placeholder-product.png' },
-];
+// Import our Shopify functions and types
+import { getProducts } from '@/lib/shopify';
+import { ShopifyProduct } from '@/types/shopify';
 
-const ProductCard = ({ product }: { product: any }) => (
-  <motion.div className="flex-shrink-0 w-80" whileHover={{ y: -5 }}>
-    <div className="w-full h-96 bg-white/5 flex items-center justify-center">
-        {/* Placeholder - We'll use Shopify product images here */}
-        <span className="text-sm">Product Image</span>
-    </div>
-    <div className="mt-4 text-left">
-      <h3 className="font-sans font-semibold">{product.name}</h3>
-      <p className="font-mono text-sm">${product.price}</p>
-    </div>
-  </motion.div>
+// This is the new Product Card component. It is designed to accept REAL Shopify data.
+const ProductCard = ({ product }: { product: ShopifyProduct }) => (
+  <Link href={`/products/${product.handle}`} passHref>
+    <motion.div className="flex-shrink-0 w-80" whileHover={{ y: -5 }}>
+      <div className="w-full h-96 bg-white/5 flex items-center justify-center rounded-md overflow-hidden">
+          {product.featuredImage ? (
+            <Image 
+                src={product.featuredImage.url}
+                alt={product.featuredImage.altText || product.title}
+                width={product.featuredImage.width}
+                height={product.featuredImage.height}
+                className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-sm">No Image</span>
+          )}
+      </div>
+      <div className="mt-4 text-left">
+        <h3 className="font-sans font-semibold">{product.title}</h3>
+        <p className="font-mono text-sm">${product.priceRange.minVariantPrice.amount}</p>
+      </div>
+    </motion.div>
+  </Link>
 );
 
+// This is the updated main component that fetches live data.
 export const FeaturedProducts = () => {
+  // State to hold the live products from Shopify
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  // State to handle loading feedback
+  const [isLoading, setIsLoading] = useState(true);
+
+  // This useEffect hook runs once when the component mounts
+  useEffect(() => {
+    // We create an async function inside to fetch the data
+    const fetchProducts = async () => {
+      try {
+        // We call our getProducts function from shopify.ts
+        const fetchedProducts = await getProducts(4); // Fetch the first 4 products
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []); // The empty array means this effect only runs once
+
+  // Handle the loading state
+  if (isLoading) {
+    return (
+        <section className="py-24 px-6 md:px-12 bg-black text-center">
+            <h2 className="font-display text-4xl mb-12">Featured Collection</h2>
+            <p className="font-sans text-white/50">Loading Products...</p>
+        </section>
+    );
+  }
+
   return (
     <section className="py-24 px-6 md:px-12 bg-black">
       <h2 className="font-display text-4xl mb-12 text-center">Featured Collection</h2>
-      <div className="flex gap-8 overflow-x-auto pb-4">
-        {placeholderProducts.map(product => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+      <div className="flex justify-center">
+        <div className="flex gap-8 overflow-x-auto pb-4 max-w-7xl">
+            {products.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+        </div>
       </div>
     </section>
   );
@@ -1655,7 +2468,7 @@ export const HeroSection = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.5 }}
       >
-        <h1 className="font-display font-black text-6xl md:text-8xl uppercase">
+        <h1 className="font-display font-black text-5xl md:text-8xl uppercase">
           First Drop Is Live
         </h1>
         <p className="font-sans mt-4 max-w-lg">
@@ -1675,6 +2488,70 @@ export const HeroSection = () => {
   );
 };
 
+### .\src\hooks\useMediaQuery.ts ###
+
+"use client";
+
+import { useState, useEffect } from 'react';
+
+/**
+ * A custom hook to track the state of a CSS media query.
+ * @param query The media query string to watch (e.g., '(max-width: 767px)').
+ * @returns A boolean indicating whether the media query matches.
+ */
+export const useMediaQuery = (query: string): boolean => {
+  // Ensure this runs only on the client
+  const [matches, setMatches] = useState<boolean>(
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  );
+
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia(query);
+    const listener = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
+
+    // Use the modern addEventListener/removeEventListener
+    mediaQueryList.addEventListener('change', listener);
+    
+    // Check again on mount in case the initial state was stale
+    setMatches(mediaQueryList.matches);
+
+    return () => {
+      mediaQueryList.removeEventListener('change', listener);
+    };
+  }, [query]);
+
+  return matches;
+};
+
+### .\src\hooks\useSound.ts ###
+
+"use client";
+
+import { useCallback } from 'react';
+
+/**
+ * A custom hook to play a sound effect.
+ * @param soundPath The path to the sound file from the `public` directory.
+ * @param volume The volume to play the sound at (0.0 to 1.0). Defaults to 0.5.
+ * @returns A `play` function to trigger the sound.
+ */
+export const useSound = (soundPath: string, volume: number = 0.5) => {
+  const play = useCallback(() => {
+    // We create a new Audio object on each play call.
+    // This is simple and effective for short, non-overlapping SFX.
+    const audio = new Audio(soundPath);
+    audio.volume = volume;
+    audio.play().catch(e => {
+      // Audio playback can sometimes be blocked by the browser, so we log errors silently.
+      console.error(`Could not play sound ${soundPath}:`, e);
+    });
+  }, [soundPath, volume]);
+
+  return play;
+};
+
 ### .\src\lib\shopify.ts ###
 
 import { ShopifyProductsResponseBody, ShopifyProduct } from '@/types/shopify';
@@ -1682,8 +2559,6 @@ import { ShopifyProductsResponseBody, ShopifyProduct } from '@/types/shopify';
 const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!;
 const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!;
 
-// This is our main function for making API calls.
-// It is now correctly typed.
 async function shopifyFetch<T>({
   query,
   variables,
@@ -1714,7 +2589,13 @@ async function shopifyFetch<T>({
       body,
     };
   } catch (e) {
-    throw new Error(`Shopify API call failed: ${e.message}`);
+    // THE FIX IS HERE.
+    // We now check if 'e' is an instance of Error before accessing e.message.
+    if (e instanceof Error) {
+        throw new Error(`Shopify API call failed: ${e.message}`);
+    }
+    // If it's not a standard Error object, we handle it gracefully.
+    throw new Error('An unknown error occurred during the Shopify API call.');
   }
 }
 
@@ -1744,16 +2625,11 @@ const getProductsQuery = `
   }
 `;
 
-// THE FIX IS HERE:
-// We now tell shopifyFetch that we expect the response body to match our ShopifyProductsResponseBody interface.
-// The function is also typed to return a promise of a ShopifyProduct array.
 export async function getProducts(count: number): Promise<ShopifyProduct[]> {
   const res = await shopifyFetch<ShopifyProductsResponseBody>({
     query: getProductsQuery,
     variables: { first: count },
   });
-
-  // TypeScript now knows the exact shape of res.body, so this is safe.
   return res.body.data.products.edges.map((edge) => edge.node);
 }
 
@@ -1809,6 +2685,7 @@ export interface ShopifyProductsResponseBody {
 ### .\tailwind.config.ts ###
 
 import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
 
 const config: Config = {
   content: [
@@ -1824,13 +2701,29 @@ const config: Config = {
         'foreground': '#FFFFFF',
       },
        fontFamily: {
-        sans: ['var(--font-poppins)', 'sans-serif'], // Main font is now Poppins
+        sans: ['var(--font-poppins)', 'sans-serif'],
         display: ['var(--font-unbounded)', 'sans-serif'], 
         heading: ['var(--font-genoa)', 'sans-serif'],
       },
+      // NEW: Add text-shadow theme extension
+      textShadow: {
+        'glow': '0 0 8px rgba(255, 255, 255, 0.5)',
+      },
     },
   },
-  plugins: [],
+  // NEW: Add the textShadow plugin
+  plugins: [
+    plugin(function ({ matchUtilities, theme }) {
+      matchUtilities(
+        {
+          'text-shadow': (value) => ({
+            textShadow: value,
+          }),
+        },
+        { values: theme('textShadow') }
+      )
+    }),
+  ],
 }
 export default config
 
