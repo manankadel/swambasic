@@ -213,19 +213,19 @@ export default function GatewayPage() {
           className="flex w-full max-w-sm flex-col items-center text-center"
           {...MOTION_VARIANTS.content}
         >
-          <p className="font-sans text-md md:text-xl mt-6 mb-6 text-foreground/80 animate-shimmer-glow">
+          <p className="font-sans text-sm md:text-xl mt-3 mb-4 md:mt-6 md:mb-6 text-foreground/80 animate-shimmer-glow px-2">
             Join the waitlist for exclusive access.
           </p>
           
-          <div className="mb-6">
+          <div className="mb-4 md:mb-6">
             <CountdownTimer />
           </div>
           
-          <div className="w-full flex justify-center">
+          <div className="w-full flex justify-center px-2">
             <WaitlistForm />
           </div>
           
-          <div className="mt-8">
+          <div className="mt-4 md:mt-8 mb-4 md:mb-0">
             <PasswordAccess />
           </div>
         </motion.div>
@@ -237,9 +237,9 @@ export default function GatewayPage() {
   const mainLayout = useMemo(() => (
     <main 
       style={STYLES.main}
-      className="grid w-full place-items-center overflow-hidden p-4 pt-0"
+      className="flex flex-col items-center justify-start overflow-hidden p-4 pt-2 md:pt-0 md:grid md:place-items-center"
     >
-      <div className="flex w-full flex-col items-center">
+      <div className="flex w-full flex-col items-center mt-4 md:mt-0">
         <motion.div layout {...MOTION_VARIANTS.layout}>
           <GatewayAnimation />
         </motion.div>
@@ -249,9 +249,9 @@ export default function GatewayPage() {
   ), [contentSection]);
 
   return (
-    <>
+    <div className="min-h-screen md:h-auto">
       <InteractiveLiquidBackground />
       {mainLayout}
-    </>
+    </div>
   );
 }
