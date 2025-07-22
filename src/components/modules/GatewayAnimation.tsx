@@ -109,16 +109,14 @@ const DesktopLayout = () => {
           variants={DESKTOP_VARIANTS.image} 
           className="relative w-36 h-36 md:w-56 md:h-56"
         >
-          <Image 
-            src="/logo-rotating.GIF" 
-            alt="SWAMBASIC Logo" 
-            fill 
-            className="object-contain" 
-            unoptimized={true}
-            priority={true}
-            loading="eager"
-            sizes="(max-width: 768px) 144px, 224px"
-          />
+          <video 
+  src="/logo-rotating.webm"
+  autoPlay 
+  loop 
+  muted 
+  playsInline 
+  className="w-full h-full object-contain"
+/>
         </motion.div>
       </motion.div>
       <span className="font-heading text-4xl md:text-6xl font-extrabold tracking-widest uppercase overflow-hidden text-shadow-glow">
@@ -144,16 +142,14 @@ const MobileLayout = () => {
           className="relative w-60 h-60"
           variants={MOBILE_VARIANTS.logoRotation}
         >
-          <Image 
-            src="/logo-rotating.GIF" 
-            alt="SWAMBASIC Logo" 
-            fill 
-            className="object-contain" 
-            unoptimized={true}
-            priority={true}
-            loading="eager"
-            sizes="240px"
-          />
+          <video 
+  src="/logo-rotating.webm"
+  autoPlay 
+  loop 
+  muted 
+  playsInline 
+  className="w-full h-full object-contain"
+/>
         </motion.div>
       </motion.div>
 
