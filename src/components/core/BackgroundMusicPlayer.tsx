@@ -43,7 +43,7 @@ const PlayIcon = () => (
 // PERFORMANCE CONSTANTS
 // ==================================================================
 const AUDIO_CONFIG = {
-  START_TIME: 20,
+  START_TIME: 93,
   PRELOAD: 'auto',
   VOLUME: 0.7, // Slightly lower volume for better UX
   FADE_IN_DURATION: 1000, // 1 second fade in
