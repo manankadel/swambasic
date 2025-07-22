@@ -64,25 +64,76 @@ export async function POST(request: Request) {
     // ==================================================================
     console.log("SHOPIFY_API_RESPONSE:", JSON.stringify(data, null, 2));
 
-
-    // Check for top-level GraphQL errors that indicate a problem with the query itself
+    // ==================================================================
+    // IMPROVED ERROR HANDLING: Only fail on CRITICAL GraphQL errors
+    // ==================================================================
+    // Check for critical GraphQL errors (authentication, malformed query, etc.)
     if (data.errors) {
         console.error('GraphQL Errors:', data.errors);
-        return NextResponse.json({ error: 'Failed to join waitlist due to a GraphQL error.' }, { status: 500 });
+        
+        // Check if these are critical errors that prevent execution
+        const hasCriticalErrors = data.errors.some((error: any) => 
+            error.extensions?.code === 'ACCESS_DENIED' ||
+            error.message?.includes('Parse error') ||
+            error.message?.includes('Field') ||
+            error.message?.includes('Unknown')
+        );
+        
+        if (hasCriticalErrors || !data.data) {
+            return NextResponse.json({ error: 'Failed to join waitlist due to a critical GraphQL error.' }, { status: 500 });
+        }
+        
+        // If there are non-critical errors but we still got data, log them but continue
+        console.warn('Non-critical GraphQL errors, but continuing since data exists:', data.errors);
     }
     
     // Check for user-specific errors returned by the mutation (e.g., "Email has already been taken")
     const userErrors = data.data?.customerCreate?.userErrors;
     if (userErrors && userErrors.length > 0) {
         console.error('Shopify User Errors:', userErrors);
+        
+        // Handle duplicate email case more gracefully
+        const duplicateEmailError = userErrors.find((error: any) => 
+            error.message?.toLowerCase().includes('taken') || 
+            error.message?.toLowerCase().includes('already exists')
+        );
+        
+        if (duplicateEmailError) {
+            // For duplicate emails, we can consider this a "success" since they're already on the list
+            return NextResponse.json({ 
+                success: true, 
+                message: 'You are already on our waitlist!' 
+            }, { status: 200 });
+        }
+        
+        // For other user errors, return them to the user
         return NextResponse.json({ error: userErrors[0].message }, { status: 400 });
     }
 
     // ==================================================================
-    // STEP 2: THE NEW SUCCESS CONDITION
-    // If we have passed all the error checks, we can confidently say it was a success.
+    // STEP 2: THE SUCCESS CONDITION
+    // Check if we actually got a customer back OR if the mutation was successful
     // ==================================================================
-    return NextResponse.json({ success: true, customer: data.data?.customerCreate?.customer || 'Customer created' }, { status: 201 });
+    const customer = data.data?.customerCreate?.customer;
+    
+    if (customer && customer.id) {
+        // We got a customer with an ID - definite success
+        return NextResponse.json({ 
+            success: true, 
+            customer: customer,
+            message: "Successfully joined the waitlist!"
+        }, { status: 200 });
+    } else if (data.data?.customerCreate !== null) {
+        // The mutation executed without userErrors, assume success even without customer object
+        return NextResponse.json({ 
+            success: true, 
+            message: "Successfully joined the waitlist!"
+        }, { status: 200 });
+    } else {
+        // Something went wrong
+        console.error('Unexpected response structure:', data);
+        return NextResponse.json({ error: 'Unexpected response from Shopify' }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('API Route Crashed:', error);

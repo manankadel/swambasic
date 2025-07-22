@@ -22,28 +22,46 @@ export const WaitlistForm = () => {
         body: JSON.stringify({ email, phone }),
       });
 
+      // DEBUG: Log response details
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      console.log('Response headers:', response.headers);
+
       // Check if response has content and is JSON
       let data = null;
       const contentType = response.headers.get('content-type');
       
+      console.log('Content-Type:', contentType); // DEBUG
+      
       if (contentType && contentType.includes('application/json')) {
         const text = await response.text();
+        console.log('Response text:', text); // DEBUG
+        
         if (text) {
           try {
             data = JSON.parse(text);
+            console.log('Parsed data:', data); // DEBUG
           } catch (parseError) {
             console.error('Failed to parse JSON:', parseError);
             data = { error: 'Invalid response from server' };
           }
         }
+      } else {
+        // If it's not JSON, let's see what we got
+        const text = await response.text();
+        console.log('Non-JSON response text:', text);
       }
 
+      console.log('Final data object:', data); // DEBUG
+
       if (response.ok) {
+        console.log('Response was OK, setting success'); // DEBUG
         setStatus('success');
         setMessage("You're on the list. We'll be in touch.");
         setEmail('');
         setPhone('');
       } else {
+        console.log('Response was NOT OK, setting error'); // DEBUG
         setStatus('error');
         setMessage(data?.error || `Server error: ${response.status}`);
       }
