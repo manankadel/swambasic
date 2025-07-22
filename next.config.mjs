@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
-  // We are telling Next.js that it is allowed to optimize
-  // and display images from Shopify's CDN.
+
   images: {
     remotePatterns: [
       {
@@ -13,6 +11,20 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|jpeg|png|gif|webp|mp4|webm|mp3|wav|ogg|woff2|woff|ttf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
 };
 
