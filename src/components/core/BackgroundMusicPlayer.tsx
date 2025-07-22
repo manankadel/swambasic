@@ -258,7 +258,8 @@ export const BackgroundMusicPlayer = () => {
     <>
       <audio 
         ref={audioRef}
-        src="/audio/background-music.mp3"
+        src="https://cdn.jsdelivr.net/gh/manankadel/swambasic@main/public/assets/audio/background-music.mp3
+"
         loop
         preload={AUDIO_CONFIG.PRELOAD}
         style={{ display: 'none' }}
