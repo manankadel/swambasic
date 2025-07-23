@@ -1,0 +1,2815 @@
+
+
+### .\.env.local ###
+
+# Shopify Storefront API (Public)
+NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN="pvt"
+NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN="14btvf-mp.myshopify.com"
+
+# Shopify Admin API (Private - DO NOT prefix with NEXT_PUBLIC_)
+SHOPIFY_ADMIN_ACCESS_TOKEN="pvt"
+
+# Site Access
+SITE_ACCESS_PASSWORD="pvt"
+SESSION_SECRET="pvt"
+
+### .\.gitignore ###
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+
+### .\README.md ###
+
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+### .\code_dump.txt ###
+
+
+
+### .\dump_project.py ###
+
+import os
+
+EXCLUDE_DIRS = {
+    "node_modules", ".next", ".git", "__pycache__", ".vscode", ".idea", ".turbo", ".vercel", ".expo"
+}
+
+EXCLUDE_FILES = {
+    ".DS_Store", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb"
+}
+
+EXCLUDE_EXTENSIONS = {
+    ".lock", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".mp4", ".mp3",
+    ".webm", ".ttf", ".woff", ".woff2", ".eot", ".otf", ".zip", ".tar", ".gz",
+    ".exe", ".dll", ".bin", ".log"
+}
+
+structure_file = open("project_structure.txt", "w", encoding="utf-8")
+code_dump_file = open("code_dump.txt", "w", encoding="utf-8")
+
+def is_binary_or_excluded(filename):
+    return (
+        filename in EXCLUDE_FILES or
+        any(filename.lower().endswith(ext) for ext in EXCLUDE_EXTENSIONS)
+    )
+
+def dump_structure_and_code(path, indent=""):
+    for item in sorted(os.listdir(path)):
+        full_path = os.path.join(path, item)
+
+        if item in EXCLUDE_FILES:
+            continue
+        if os.path.isdir(full_path):
+            if item in EXCLUDE_DIRS:
+                continue
+            structure_file.write(f"{indent}{item}/\n")
+            dump_structure_and_code(full_path, indent + "  ")
+        else:
+            if is_binary_or_excluded(item):
+                continue
+            structure_file.write(f"{indent}{item}\n")
+            try:
+                with open(full_path, "r", encoding="utf-8") as f:
+                    code_dump_file.write(f"\n\n### {full_path} ###\n\n")
+                    code_dump_file.write(f.read())
+            except Exception as e:
+                code_dump_file.write(f"\n\n### {full_path} ###\n\n")
+                code_dump_file.write(f"[Error reading file: {e}]\n")
+
+if __name__ == "__main__":
+    root_dir = "."  # Set to your project path if not in root
+    dump_structure_and_code(root_dir)
+    structure_file.close()
+    code_dump_file.close()
+    print("✅ Done. Files saved: 'project_structure.txt' and 'code_dump.txt'")
+
+
+### .\eslint.config.mjs ###
+
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+];
+
+export default eslintConfig;
+
+
+### .\middleware.ts ###
+
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  console.log('🔥 MIDDLEWARE RUNNING:', request.nextUrl.pathname)
+  
+  // Block /home specifically
+  if (request.nextUrl.pathname === '/home') {
+    console.log('🚫 BLOCKING /home - redirecting to /')
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+  
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/home']
+}
+
+### .\next-env.d.ts ###
+
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/basic-features/typescript for more information.
+
+
+### .\next.config.mjs ###
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.shopify.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|jpeg|png|gif|webp|mp4|webm|mp3|wav|ogg|woff2|woff|ttf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
+};
+
+export default nextConfig;
+
+
+### .\package.json ###
+
+{
+  "name": "swambasic",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.107.0",
+    "@react-three/fiber": "^8.16.8",
+    "@shopify/hydrogen-react": "^2025.4.0",
+    "framer-motion": "^11.2.12",
+    "next": "14.2.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.164.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/three": "^0.164.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.4",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
+
+
+### .\postcss.config.mjs ###
+
+/** @type {import('postcss-load-config').Config} */
+const config = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+
+export default config;
+
+### .\project_structure.txt ###
+
+
+
+### .\public\audio\typing.wav ###
+
+
+
+### .\public\audio\typing.wav ###
+
+[Error reading file: 'utf-8' codec can't decode byte 0x92 in position 4: invalid start byte]
+
+
+### .\src\app\(main)\account\addresses\page.tsx ###
+
+import Addresses from '@/components/modules/account/Addresses';
+
+const AccountAddressesPage = () => {
+  return <Addresses />;
+};
+
+export default AccountAddressesPage;
+
+### .\src\app\(main)\account\layout.tsx ###
+
+"use client";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+const accountNavLinks = [
+  { name: 'Order History', href: '/account/orders' },
+  { name: 'Profile Details', href: '/account/profile' },
+  { name: 'Addresses', href: '/account/addresses' },
+  { name: 'Logout', href: '/account/logout' },
+];
+
+export default function AccountLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="font-display text-4xl md:text-5xl font-bold mb-8 md:mb-12">Personal Hub</h1>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+          {/* Left Column: Navigation */}
+          <aside className="md:col-span-1">
+            <nav className="flex flex-col gap-4">
+              {accountNavLinks.map(link => {
+                const isActive = pathname.includes(link.href);
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className={`font-sans uppercase tracking-wider text-sm border-l-2 pl-4 transition-colors ${
+                      isActive
+                        ? 'text-white border-white'
+                        : 'text-white/50 border-white/20 hover:text-white hover:border-white'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+          {/* Right Column: Content */}
+          <section className="md:col-span-3">
+            {children}
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+### .\src\app\(main)\account\orders\page.tsx ###
+
+import OrderHistory from '@/components/modules/account/OrderHistory';
+
+const AccountOrdersPage = () => {
+  return <OrderHistory />;
+};
+
+export default AccountOrdersPage;
+
+### .\src\app\(main)\account\page.tsx ###
+
+import OrderHistory from '@/components/modules/account/OrderHistory';
+
+const AccountDashboardPage = () => {
+  // For now, the main dashboard will default to showing the Order History.
+  return <OrderHistory />;
+};
+
+export default AccountDashboardPage;
+
+### .\src\app\(main)\account\profile\page.tsx ###
+
+import ProfileDetails from '@/components/modules/account/ProfileDetails';
+
+const AccountProfilePage = () => {
+  return <ProfileDetails />;
+};
+
+export default AccountProfilePage;
+
+### .\src\app\(main)\cart\page.tsx ###
+
+"use client";
+import Link from 'next/link';
+import Image from 'next/image';
+
+// Placeholder data - we will replace this with real cart items from Shopify
+const placeholderCartItems = [
+  { id: 1, name: 'Obsidian Hoodie', variant: 'Size L', price: '250.00', quantity: 1, image: '/placeholder-product.png' },
+  { id: 2, name: 'Onyx Tee', variant: 'Size L', price: '120.00', quantity: 1, image: '/placeholder-product.png' },
+];
+
+// Set this to true to see the filled cart, or false to see the empty state
+const hasItems = true; 
+
+const CartPage = () => {
+  if (!hasItems) {
+    return (
+      <main className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
+        <h1 className="font-display text-5xl font-bold">The Canvas Is Blank.</h1>
+        <Link href="/catalog">
+          <button className="mt-8 px-8 py-4 bg-white text-black font-sans font-bold uppercase tracking-widest">
+            Discover The Collection
+          </button>
+        </Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="font-display text-5xl font-bold mb-12">Your Cart</h1>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+          {/* Left Section: Cart Items */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            {placeholderCartItems.map(item => (
+              <div key={item.id} className="flex gap-6 items-center">
+                <div className="w-24 h-32 bg-white/5 rounded-md flex-shrink-0">
+                  {/* <Image src={item.image} alt={item.name} /> */}
+                </div>
+                <div className="flex-grow">
+                  <h3 className="font-sans font-semibold">{item.name}</h3>
+                  <p className="font-sans text-sm text-white/50">{item.variant}</p>
+                </div>
+                <div className="font-mono text-center">
+                  {/* Quantity Selector - To be made functional later */}
+                  x{item.quantity}
+                </div>
+                <div className="font-mono text-lg text-right">
+                  ${item.price}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Right Section: Order Summary */}
+          <div className="lg:col-span-1">
+             <div className="lg:sticky top-40 p-6 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
+              <h2 className="font-display text-2xl font-bold">Summary</h2>
+              <div className="mt-6 space-y-2 font-mono text-sm text-white/80">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>$370.00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span className="text-xs">Calculated at next step</span>
+                </div>
+              </div>
+              <div className="mt-6 border-t border-white/10 pt-4 flex justify-between font-mono font-bold">
+                <span>Total</span>
+                <span>$370.00</span>
+              </div>
+              <button className="mt-6 w-full py-4 bg-white text-black font-sans font-bold uppercase tracking-widest">
+                Proceed to Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+};
+
+export default CartPage;
+
+### .\src\app\(main)\home\page.tsx ###
+
+"use client";
+
+import { HeroSection } from "@/components/modules/homepage/HeroSection";
+import { FeaturedProducts } from "@/components/modules/homepage/FeaturedProducts";
+import { motion } from "framer-motion";
+import { BrandManifesto } from "@/components/modules/homepage/BrandManifesto"; // <-- IMPORT THE NEW COMPONENT
+
+const HomePage = () => {
+  return (
+    <main>
+        <HeroSection />
+
+      {/* This ensures the content below fades in as you scroll to it */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.8 }}
+      >
+        <FeaturedProducts />
+      </motion.div>
+      <BrandManifesto />
+      
+      {/* We will design and build out the full homepage content here */}
+    </main>
+  );
+};
+
+export default HomePage;
+
+### .\src\app\(main)\layout.tsx ###
+
+"use client";
+import { Header } from "@/components/core/Header";
+import { Footer } from "@/components/core/Footer"; // <-- IMPORT THE NEW FOOTER
+
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // THE FIX: We have removed the usePathname hook and the conditional logic.
+  // The Header will now render on all pages within this layout, including /home.
+  return (
+    <div>
+      <Header />
+      {children}
+      <Footer /> {/* <-- ADD THE FOOTER HERE */}
+    </div>
+  );
+}
+
+### .\src\app\api\access\route.ts ###
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+
+const SESSION_TOKEN_NAME = 'swambasic_session';
+
+// Generate a secure session token
+function generateSessionToken(sessionSecret: string): string {
+  const timestamp = Date.now().toString();
+  const randomToken = Math.random().toString(36).substring(2) + 
+                     Math.random().toString(36).substring(2) + 
+                     Math.random().toString(36).substring(2);
+  
+  // Combine timestamp, token, and secret, then base64 encode
+  const sessionData = `${timestamp}|${randomToken}|${sessionSecret}`;
+  return btoa(sessionData);
+}
+
+export async function POST(request: Request) {
+  try {
+    const { password } = await request.json();
+
+    if (!password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 });
+    }
+
+    const sitePassword = process.env.SITE_ACCESS_PASSWORD;
+    const sessionSecret = process.env.SESSION_SECRET;
+
+    if (!sitePassword || !sessionSecret) {
+      console.error("Missing environment variables for site access.");
+      return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+    }
+    
+    // Check if the password is correct
+    if (password === sitePassword) {
+      // Generate secure session token
+      const sessionToken = generateSessionToken(sessionSecret);
+      
+      // Set secure cookie
+      const cookieStore = cookies();
+      cookieStore.set(SESSION_TOKEN_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24, // 24 hours (reduced from 7 days for security)
+      });
+      
+      return NextResponse.json({ success: true }, { status: 200 });
+
+    } else {
+      // Incorrect password
+      return NextResponse.json({ error: 'Invalid access code' }, { status: 401 });
+    }
+
+  } catch (error) {
+    console.error('Access API error:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
+  }
+}
+
+### .\src\app\api\waitlist\route.ts ###
+
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  const { email, phone } = await request.json();
+
+  if (!email) {
+    return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+  }
+
+  const adminApiToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+  const storeDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+  
+  // Use REST API instead of GraphQL
+  const restApiUrl = `https://${storeDomain}/admin/api/2024-04/customers.json`;
+
+  const customerData = {
+    customer: {
+      email: email,
+      phone: phone,
+      tags: "waitlist,pre-launch",
+      verified_email: false,
+      marketing_opt_in_level: null
+    }
+  };
+
+  try {
+    const response = await fetch(restApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': adminApiToken!,
+      },
+      body: JSON.stringify(customerData),
+    });
+
+    const responseText = await response.text();
+    console.log('Shopify REST API Response Status:', response.status);
+    console.log('Shopify REST API Response:', responseText);
+
+    // Parse the response
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (e) {
+        console.error("Failed to parse Shopify response as JSON:", responseText);
+        return NextResponse.json({ error: 'Invalid response from Shopify.' }, { status: 500 });
+    }
+
+    // Success case (201 Created or 200 OK)
+    if (response.status === 201 || response.status === 200) {
+        const customer = data.customer;
+        if (customer && customer.id) {
+            console.log('Customer created successfully:', customer.id);
+            return NextResponse.json({ 
+                success: true, 
+                message: "Successfully joined the waitlist!"
+            }, { status: 200 });
+        }
+    }
+
+    // Handle specific error cases
+    if (response.status === 422 && data.errors) {
+        // Validation errors
+        console.error('Shopify validation errors:', data.errors);
+        
+        // Check for duplicate email
+        if (data.errors.email && data.errors.email.includes('has already been taken')) {
+            return NextResponse.json({ 
+                success: true, 
+                message: 'You are already on our waitlist!' 
+            }, { status: 200 });
+        }
+        
+        // Other validation errors
+        const errorMessage = Object.values(data.errors)[0] as string;
+        return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
+
+    // Other error cases
+    if (response.status === 401) {
+        return NextResponse.json({ error: 'Authentication failed. Check your access token.' }, { status: 500 });
+    }
+
+    if (response.status === 403) {
+        return NextResponse.json({ error: 'Permission denied. Check your app permissions.' }, { status: 500 });
+    }
+
+    // General failure
+    return NextResponse.json({ 
+        error: `Failed to create customer: ${response.status}` 
+    }, { status: 500 });
+
+  } catch (error) {
+    console.error('API Route Crashed:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+### .\src\app\fonts.ts ###
+
+import { Poppins, Unbounded } from 'next/font/google';
+import localFont from 'next/font/local'; // <-- IMPORT THIS
+
+export const fontPoppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-poppins',
+});
+
+export const fontUnbounded = Unbounded({
+    subsets: ['latin'],
+    weight: ['700', '900'],
+    variable: '--font-unbounded',
+});
+
+// DEFINE THE NEW LOCAL FONT HERE
+export const fontGenoa = localFont({
+  src: '../assets/fonts/genoa.otf', // <-- PATH TO YOUR FONT FILE
+  display: 'swap',
+  variable: '--font-genoa', // <-- CSS variable we will use
+});
+
+### .\src\app\globals.css ###
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+body {
+  @apply bg-black text-foreground;
+}
+
+/* NEW: Shimmer/Glow animation for text */
+.animate-shimmer-glow {
+  background: linear-gradient(90deg, #ffffff 25%, #888888 50%, #ffffff 75%);
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-glow 8s linear infinite;
+}
+
+@keyframes shimmer-glow {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+### .\src\app\layout.tsx ###
+
+import type { Metadata } from 'next'
+import './globals.css'
+import { fontPoppins, fontUnbounded, fontGenoa } from './fonts';
+import { BackgroundMusicPlayer } from '@/components/core/BackgroundMusicPlayer';
+import { GlobalSoundEffects } from '@/components/core/GlobalSoundEffects';
+import { AppHeightProvider } from '@/components/core/AppHeightProvider'; // <-- IMPORT THE NEW PROVIDER
+
+export const metadata = {
+  title: 'SWAMBASIC - Coming Soon',
+  description: 'Luxury Streetwear. Join the waitlist.',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={[
+        fontPoppins.variable, 
+        fontUnbounded.variable, 
+        fontGenoa.variable, 
+        'dark'
+      ].join(' ')}>
+      <body>
+        {/* WRAP everything in the AppHeightProvider */}
+        <AppHeightProvider>
+            <GlobalSoundEffects />
+            {children}
+            <BackgroundMusicPlayer />
+        </AppHeightProvider>
+      </body>
+    </html>
+  )
+}
+
+### .\src\app\page.tsx ###
+
+"use client";
+
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { GatewayAnimation } from '@/components/modules/GatewayAnimation';
+import { WaitlistForm } from '@/components/modules/WaitlistForm';
+import CountdownTimer from '@/components/modules/CountdownTimer';
+import { InteractiveLiquidBackground } from '@/components/core/InteractiveLiquidBackground';
+import { useSound } from '@/hooks/useSound';
+
+// ==================================================================
+// PERFORMANCE CONSTANTS
+// ==================================================================
+const ANIMATION_CONFIG = {
+  CONTENT_DELAY: 2500,
+  MOTION_DURATION: 1.0,
+  MOTION_EASE: 'easeInOut',
+  FADE_DELAY: 0.5,
+} as const;
+
+const MOTION_VARIANTS = {
+  content: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { 
+      duration: ANIMATION_CONFIG.MOTION_DURATION, 
+      ease: ANIMATION_CONFIG.MOTION_EASE, 
+      delay: ANIMATION_CONFIG.FADE_DELAY 
+    }
+  },
+  layout: {
+    transition: { 
+      duration: ANIMATION_CONFIG.MOTION_DURATION, 
+      ease: ANIMATION_CONFIG.MOTION_EASE 
+    }
+  }
+} as const;
+
+const STYLES = {
+  main: {
+    height: 'calc(var(--app-height, 100vh))',
+    contain: 'layout style paint',
+    willChange: 'auto'
+  },
+  input: {
+    contain: 'layout style'
+  },
+  button: {
+    contain: 'layout style',
+    willChange: 'color, opacity'
+  }
+} as const;
+
+// ==================================================================
+// OPTIMIZED ARROW ICON COMPONENT
+// ==================================================================
+const ArrowIcon = () => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ pointerEvents: 'none' }}
+  >
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+    <polyline points="12 5 19 12 12 19"></polyline>
+  </svg>
+);
+
+// ==================================================================
+// OPTIMIZED PASSWORD ACCESS COMPONENT
+// ==================================================================
+const PasswordAccess = () => {
+  const router = useRouter();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Optimized sound hook with lazy loading
+  const playHoverSound = useSound('/audio/hover.mp3', 0.3);
+
+  // Memoized input change handler
+  const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (error) setError(''); // Clear error on new input
+  }, [error]);
+
+  // Optimized submit handler with abort controller
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!password.trim() || isLoading) return;
+    
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    setIsLoading(true);
+    setError('');
+    
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+    
+    try {
+      const response = await fetch('/api/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (response.ok) {
+        // Use replace for better performance
+        router.replace('/home');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Invalid access code.');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        setError('Connection error. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [password, isLoading, router]);
+
+  // Optimized hover handler
+  const handleMouseEnter = useCallback(() => {
+    if (!isLoading) playHoverSound();
+  }, [playHoverSound, isLoading]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Memoized form elements
+  const formContent = useMemo(() => (
+    <form onSubmit={handleSubmit} className="flex items-center gap-4">
+      <input
+        type="password"
+        value={password}
+        onChange={handlePasswordChange}
+        placeholder="Enter Access Code"
+        className="font-sans w-full max-w-[240px] bg-transparent border-b-2 border-foreground/50 focus:border-foreground text-center text-lg focus:outline-none transition-colors duration-300 disabled:opacity-50"
+        disabled={isLoading}
+        autoComplete="current-password"
+        style={STYLES.input}
+      />
+      <button
+        type="submit"
+        disabled={isLoading || !password.trim()}
+        className="text-foreground/80 hover:text-white transition-colors disabled:opacity-50"
+        onMouseEnter={handleMouseEnter}
+        style={STYLES.button}
+        aria-label="Submit access code"
+      >
+        <ArrowIcon />
+      </button>
+    </form>
+  ), [password, isLoading, handleSubmit, handlePasswordChange, handleMouseEnter]);
+
+  return (
+    <div className="mt-8 flex flex-col items-center">
+      {formContent}
+      {error && (
+        <p className="mt-2 text-sm text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+};
+
+// ==================================================================
+// OPTIMIZED MAIN GATEWAY PAGE COMPONENT
+// ==================================================================
+export default function GatewayPage() {
+  const [showContent, setShowContent] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Optimized content reveal effect
+  useEffect(() => {
+    timeoutRef.current = setTimeout(() => {
+      setShowContent(true);
+    }, ANIMATION_CONFIG.CONTENT_DELAY);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Memoized content section
+  const contentSection = useMemo(() => (
+    <AnimatePresence mode="wait">
+      {showContent && (
+        <motion.div
+          className="flex w-full max-w-sm flex-col items-center text-center"
+          {...MOTION_VARIANTS.content}
+        >
+          <p className="font-sans text-sm md:text-xl mt-3 mb-4 md:mt-6 md:mb-6 text-foreground/80 animate-shimmer-glow px-2">
+            Join the waitlist for exclusive access.
+          </p>
+          
+          <div className="mb-4 md:mb-6">
+            <CountdownTimer />
+          </div>
+          
+          <div className="w-full flex justify-center px-2">
+            <WaitlistForm />
+          </div>
+          
+          <div className="mt-4 md:mt-8 mb-4 md:mb-0">
+            <PasswordAccess />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  ), [showContent]);
+
+  return (
+    <div className="min-h-screen">
+      <InteractiveLiquidBackground />
+      <main 
+        style={STYLES.main}
+        className="relative flex flex-col items-center justify-center px-4 py-8"
+      >
+        <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto">
+          <motion.div layout {...MOTION_VARIANTS.layout} className="mb-4 md:mb-8">
+            <GatewayAnimation />
+          </motion.div>
+          {contentSection}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+### .\src\components\core\AppHeightProvider.tsx ###
+
+"use client";
+
+import { useEffect } from 'react';
+
+/**
+ * This component solves the "dynamic viewport" problem on mobile browsers.
+ * It measures the actual window.innerHeight and sets it as a CSS variable (`--app-height`).
+ * This ensures our layout is always based on the REAL visible screen space.
+ */
+export const AppHeightProvider = ({ children }: { children: React.ReactNode }) => {
+  useEffect(() => {
+    const setAppHeight = () => {
+      // Get the actual inner height of the window
+      const appHeight = `${window.innerHeight}px`;
+      // Set it as a CSS variable on the root HTML element
+      document.documentElement.style.setProperty('--app-height', appHeight);
+    };
+
+    // Set the height when the component mounts
+    setAppHeight();
+
+    // Also set it whenever the window is resized
+    window.addEventListener('resize', setAppHeight);
+
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener('resize', setAppHeight);
+    };
+  }, []);
+
+  return <>{children}</>;
+};
+
+### .\src\components\core\BackgroundMusicPlayer.tsx ###
+
+"use client";
+
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+
+// ==================================================================
+// OPTIMIZED ICON COMPONENTS
+// ==================================================================
+const SoundOnIcon = () => (
+  <svg 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ pointerEvents: 'none' }}
+  >
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ pointerEvents: 'none' }}
+  >
+    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+  </svg>
+);
+
+// ==================================================================
+// PERFORMANCE CONSTANTS
+// ==================================================================
+const AUDIO_CONFIG = {
+  START_TIME: 93,
+  PRELOAD: 'auto',
+  VOLUME: 0.7, // Slightly lower volume for better UX
+  FADE_IN_DURATION: 1000, // 1 second fade in
+};
+
+const BUTTON_STYLES: React.CSSProperties = {
+  position: 'fixed',
+  bottom: '24px',
+  right: '24px',
+  zIndex: 50,
+  padding: '12px',
+  borderRadius: '50%',
+  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  backdropFilter: 'blur(8px)',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  willChange: 'transform, opacity',
+  contain: 'layout style paint',
+};
+
+// ==================================================================
+// OPTIMIZED BACKGROUND MUSIC PLAYER
+// ==================================================================
+export const BackgroundMusicPlayer = () => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const userInteractedRef = useRef(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  // ==================================================================
+  // OPTIMIZED FADE IN FUNCTION
+  // ==================================================================
+  const fadeInAudio = useCallback((audio: HTMLAudioElement) => {
+    audio.volume = 0;
+    const steps = 20;
+    const volumeStep = AUDIO_CONFIG.VOLUME / steps;
+    const timeStep = AUDIO_CONFIG.FADE_IN_DURATION / steps;
+    
+    let currentStep = 0;
+    
+    if (fadeIntervalRef.current) {
+      clearInterval(fadeIntervalRef.current);
+    }
+    
+    fadeIntervalRef.current = setInterval(() => {
+      currentStep++;
+      audio.volume = Math.min(volumeStep * currentStep, AUDIO_CONFIG.VOLUME);
+      
+      if (currentStep >= steps) {
+        if (fadeIntervalRef.current) {
+          clearInterval(fadeIntervalRef.current);
+          fadeIntervalRef.current = null;
+        }
+      }
+    }, timeStep);
+  }, []);
+
+  // ==================================================================
+  // OPTIMIZED AUTOPLAY FUNCTION
+  // ==================================================================
+  const attemptAutoplay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || hasError) return;
+
+    try {
+      // Set start time
+      audio.currentTime = AUDIO_CONFIG.START_TIME;
+      
+      // Multiple autoplay strategies for maximum compatibility
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        await playPromise;
+        setIsPlaying(true);
+        fadeInAudio(audio);
+      }
+    } catch (error) {
+      console.warn("Autoplay prevented:", error);
+      setIsPlaying(false);
+      
+      // Retry autoplay on next user interaction
+      const handleFirstInteraction = () => {
+        if (!userInteractedRef.current) {
+          userInteractedRef.current = true;
+          attemptAutoplay();
+          document.removeEventListener('click', handleFirstInteraction);
+          document.removeEventListener('touchstart', handleFirstInteraction);
+          document.removeEventListener('keydown', handleFirstInteraction);
+        }
+      };
+      
+      document.addEventListener('click', handleFirstInteraction, { passive: true });
+      document.addEventListener('touchstart', handleFirstInteraction, { passive: true });
+      document.addEventListener('keydown', handleFirstInteraction, { passive: true });
+    }
+  }, [fadeInAudio, hasError]);
+
+  // ==================================================================
+  // OPTIMIZED PLAY/PAUSE TOGGLE
+  // ==================================================================
+  const togglePlayPause = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || hasError) return;
+
+    try {
+      if (isPlaying) {
+        audio.pause();
+        setIsPlaying(false);
+        if (fadeIntervalRef.current) {
+          clearInterval(fadeIntervalRef.current);
+          fadeIntervalRef.current = null;
+        }
+      } else {
+        // Set start time if at beginning
+        if (audio.currentTime < AUDIO_CONFIG.START_TIME) {
+          audio.currentTime = AUDIO_CONFIG.START_TIME;
+        }
+        
+        await audio.play();
+        setIsPlaying(true);
+        fadeInAudio(audio);
+      }
+      
+      userInteractedRef.current = true;
+    } catch (error) {
+      console.error("Error toggling audio:", error);
+      setHasError(true);
+    }
+  }, [isPlaying, fadeInAudio, hasError]);
+
+  // ==================================================================
+  // OPTIMIZED EFFECTS
+  // ==================================================================
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Audio event handlers
+    const handleCanPlayThrough = () => {
+      setIsLoaded(true);
+      if (!userInteractedRef.current) {
+        // Small delay to ensure audio is fully ready
+        retryTimeoutRef.current = setTimeout(attemptAutoplay, 100);
+      }
+    };
+
+    const handleError = () => {
+      console.error("Audio loading error");
+      setHasError(true);
+      setIsLoaded(false);
+    };
+
+    const handleEnded = () => {
+      // Reset to start time when song ends (for looping)
+      audio.currentTime = AUDIO_CONFIG.START_TIME;
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    // Add event listeners
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    // Preload audio
+    audio.load();
+
+    // Cleanup
+    return () => {
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, [attemptAutoplay]);
+
+  // ==================================================================
+  // MEMOIZED COMPONENTS
+  // ==================================================================
+  const buttonIcon = useMemo(() => {
+    if (hasError) return <PlayIcon />;
+    return isPlaying ? <SoundOnIcon /> : <PlayIcon />;
+  }, [isPlaying, hasError]);
+
+  const buttonAriaLabel = useMemo(() => {
+    if (hasError) return "Audio unavailable";
+    return isPlaying ? "Pause music" : "Play music";
+  }, [isPlaying, hasError]);
+
+  // Don't render if audio failed to load
+  if (hasError) {
+    return null;
+  }
+
+  return (
+    <>
+      <audio 
+        ref={audioRef}
+        src="https://cdn.jsdelivr.net/gh/manankadel/swambasic@main/public/assets/audio/background-music.mp3
+"
+        loop
+        preload={AUDIO_CONFIG.PRELOAD}
+        style={{ display: 'none' }}
+      />
+      
+      <button
+        onClick={togglePlayPause}
+        style={BUTTON_STYLES}
+        className="text-white/70 hover:text-white hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm"
+        aria-label={buttonAriaLabel}
+        disabled={!isLoaded && !hasError}
+        type="button"
+      >
+        {buttonIcon}
+      </button>
+    </>
+  );
+};
+
+### .\src\components\core\Footer.tsx ###
+
+"use client";
+import Link from 'next/link';
+
+// Self-contained SVG icons for a clean look
+const InstagramIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+);
+
+const TwitterIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+);
+
+export const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="w-full bg-black z-40 relative px-6 md:px-12 py-8 border-t border-white/10">
+      <div className="max-w-7xl mx-auto flex justify-between items-center text-sm text-white/50">
+        {/* Left: Copyright */}
+        <div>
+          © {currentYear} SWAMBASIC. All Rights Reserved.
+        </div>
+        
+        {/* Right: Social & Legal Links */}
+        <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4">
+                <a href="https://www.instagram.com/swambasic/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors"><InstagramIcon /></a>
+            </div>
+            <div className="flex items-center gap-4 font-sans uppercase tracking-wider text-xs">
+                <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+                <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+            </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+### .\src\components\core\GlobalSoundEffects.tsx ###
+
+"use client";
+
+import { useEffect, useRef } from 'react';
+
+/**
+ * This component attaches global event listeners to play sounds
+ * for universal actions like clicking and typing anywhere on the page.
+ * 
+ * LATENCY FIX: Audio objects are now pre-loaded and reused via useRef.
+ * On each event, we rewind the audio to the start (`currentTime = 0`) and play,
+ * eliminating the delay of creating a new Audio() object each time.
+ */
+export const GlobalSoundEffects = () => {
+  const clickSoundRef = useRef<HTMLAudioElement | null>(null);
+  const typingSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Effect to pre-load the audio objects on component mount
+  useEffect(() => {
+    // Check if window is defined to ensure this runs only on the client
+    if (typeof window !== 'undefined') {
+      clickSoundRef.current = new Audio('/audio/click.mp3');
+      clickSoundRef.current.volume = 0.5;
+
+      typingSoundRef.current = new Audio('/audio/typing.wav');
+      typingSoundRef.current.volume = 0.4;
+    }
+  }, []); // Empty dependency array ensures this runs only once
+
+  useEffect(() => {
+    const handleMouseDown = () => {
+      if (clickSoundRef.current) {
+        clickSoundRef.current.currentTime = 0.1; // Rewind to start
+        clickSoundRef.current.play().catch(e => console.error("Could not play click sound:", e));
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Add null check for event.key before accessing its properties
+      if (!event.key) return;
+      
+      const isTypingKey = event.key.length === 1 || event.key === 'Backspace';
+      if (isTypingKey && typingSoundRef.current) {
+        typingSoundRef.current.currentTime = 0; // Rewind to start
+        typingSoundRef.current.play().catch(e => console.error("Could not play typing sound:", e));
+      }
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // We don't need dependencies as the refs are stable
+
+  return null;
+};
+
+### .\src\components\core\Header.tsx ###
+
+"use client";
+import Link from 'next/link';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Icons
+const UserIcon = () => <span>AC</span>;
+const CartIcon = () => <span>CT</span>;
+const MenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
+const CloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+
+export const Header = () => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    return (
+        <>
+            <header className="fixed top-0 left-0 w-full z-50 p-6">
+                <div className="mx-auto max-w-7xl px-6 py-4 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-sm">
+                    {/* 
+                      THE FIX FOR THE OVERLAP IS HERE:
+                      - We are now using a 3-column CSS Grid.
+                      - This is the professional way to ensure the center element never overlaps the sides.
+                    */}
+                    <nav className="grid grid-cols-3 items-center">
+                        
+                        {/* Left Column */}
+                        <div className="flex justify-start">
+                            {/* DESKTOP: Left Navigation */}
+                            <div className="hidden md:flex items-center gap-8 font-sans text-sm uppercase tracking-wider text-white/80">
+                                <Link href="/catalog" className="hover:text-white transition-colors">Catalog</Link>
+                                <Link href="/contact" className="hover:text-white transition-colors">Reach Out</Link>
+                            </div>
+                            {/* MOBILE: Hamburger Menu Icon */}
+                            <div className="md:hidden">
+                                <button onClick={() => setIsMenuOpen(true)} className="text-white">
+                                    <MenuIcon />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Center Column: Logo */}
+                        <div className="flex justify-center">
+                            <Link href="/home">
+                                {/* 
+                                  THE FIX FOR THE GLOW IS HERE:
+                                  - The 'style' object with the textShadow is restored.
+                                */}
+                                <span 
+                                    className="font-display font-bold text-white text-xl md:text-2xl"
+                                    style={{ textShadow: '0 0 15px rgba(255, 255, 255, 1)' }}
+                                >
+                                    SWAMBASIC
+                                </span>
+                            </Link>
+                        </div>
+
+                        {/* Right Column: User Actions */}
+                        <div className="flex justify-end items-center gap-6 md:gap-8 font-sans text-sm text-white/80">
+                            <Link href="/account" className="hover:text-white transition-colors"><UserIcon /></Link>
+                            <Link href="/cart" className="hover:text-white transition-colors"><CartIcon /></Link>
+                        </div>
+                    </nav>
+                </div>
+            </header>
+
+            {/* MOBILE: Full-screen Menu Overlay (No changes needed here) */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 p-6"
+                    >
+                        <div className="flex justify-end">
+                            <button onClick={() => setIsMenuOpen(false)} className="text-white"><CloseIcon /></button>
+                        </div>
+                        <nav className="flex flex-col items-center justify-center h-full gap-8 text-white font-display text-3xl uppercase">
+                            <Link href="/catalog" onClick={() => setIsMenuOpen(false)}>Catalog</Link>
+                            <Link href="/contact" onClick={() => setIsMenuOpen(false)}>Reach Out</Link>
+                        </nav>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
+    );
+};
+
+### .\src\components\core\InteractiveLiquidBackground.tsx ###
+
+"use client";
+import * as THREE from 'three';
+import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
+import { useRef } from 'react';
+import { shaderMaterial } from '@react-three/drei';
+
+const vertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = `
+  varying vec2 vUv;
+  uniform float u_time;
+  uniform vec2 u_mouse;
+  uniform vec2 u_mouse_velocity;
+  uniform float u_mouse_strength;
+
+  float random (vec2 st) {
+      return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+  }
+
+  float noise (vec2 st) {
+      vec2 i = floor(st);
+      vec2 f = fract(st);
+      float a = random(i);
+      float b = random(i + vec2(1.0, 0.0));
+      float c = random(i + vec2(0.0, 1.0));
+      float d = random(i + vec2(1.0, 1.0));
+      vec2 u = f*f*(3.0-2.0*f);
+      return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+  }
+
+  void main() {
+    float dist = distance(vUv, u_mouse);
+    
+    // Create water-like disturbance around cursor
+    float influence = smoothstep(0.5, 0.0, dist);
+    
+    // Mouse velocity creates flow direction - like water following object
+    vec2 flow_direction = u_mouse_velocity * 10.0;
+    vec2 mouse_flow = flow_direction * influence * u_mouse_strength;
+    
+    // Create ripple effect from mouse movement
+    float ripple_intensity = u_mouse_strength * influence;
+    vec2 ripple_offset = sin(vec2(dist * 20.0 - u_time * 5.0)) * ripple_intensity * 0.02;
+    
+    // Combine all distortions
+    vec2 base_uv = vUv * vec2(2.0, 1.0) + vec2(u_time * 0.05);
+    vec2 disturbed_uv = base_uv + mouse_flow + ripple_offset;
+    
+    float n1 = noise(disturbed_uv * 2.0 + u_time * 0.1);
+    float n2 = noise(disturbed_uv * 4.0 - u_time * 0.2);
+    
+    // Add extra noise disturbance around mouse
+    float extra_noise = noise((vUv + mouse_flow * 0.5) * 8.0) * influence * 0.3;
+    
+    float combined_noise = (n1 + n2) * 0.5 + extra_noise;
+    
+    // Glow effect
+    float glow = influence * u_mouse_strength * 0.2;
+    
+    vec3 color1 = vec3(0.0, 0.0, 0.0);
+    vec3 color2 = vec3(0.1, 0.1, 0.1);
+    vec3 color3 = vec3(0.25, 0.25, 0.25);
+    
+    vec3 color = mix(color1, color2, smoothstep(0.3, 0.6, combined_noise));
+    color = mix(color, color3, smoothstep(0.6, 0.8, combined_noise));
+    
+    // Add glow
+    color += glow;
+
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
+const LiquidGradientMaterial = shaderMaterial(
+  // We initialize the mouse uniform at the center (0.5, 0.5 in UV space)
+  { u_time: 0, u_mouse: new THREE.Vector2(0.5, 0.5) },
+  vertexShader,
+  fragmentShader
+);
+
+extend({ LiquidGradientMaterial });
+
+function Scene() {
+  const materialRef = useRef<any>();
+  const { viewport } = useThree();
+
+  useFrame((state, delta) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.u_time.value += delta;
+
+      // THE FIX IS HERE:
+      // 1. We get the pointer position from the state (-1 to 1 range).
+      // 2. We convert it to UV coordinates (0 to 1 range).
+      // 3. We smoothly move the shader's mouse uniform to this correct coordinate.
+      const targetMouse = new THREE.Vector2(
+        (state.pointer.x + 1) / 2,
+        (-state.pointer.y + 1) / 2
+      );
+      materialRef.current.uniforms.u_mouse.value.lerp(targetMouse, 0.5);
+    }
+  });
+
+  return (
+    <mesh>
+      <planeGeometry args={[viewport.width, viewport.height]} />
+      <liquidGradientMaterial ref={materialRef} />
+    </mesh>
+  );
+}
+
+export const InteractiveLiquidBackground = () => {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: -10,
+        background: 'black',
+      }}
+    >
+      <Canvas camera={{ position: [0, 0, 1] }}>
+        <Scene />
+      </Canvas>
+    </div>
+  );
+};
+
+
+### .\src\components\modules\CountdownTimer.tsx ###
+
+"use client";
+import { useState, useEffect } from 'react';
+
+const CountdownUnit = ({ value, label }: { value: string, label: string }) => (
+    <div className="flex flex-col items-center">
+        <span className="font-display font-black text-3xl md:text-6xl tracking-tighter">
+            {value}
+        </span>
+        <span className="font-sans text-xs text-foreground/50 tracking-widest mt-1">
+            {label}
+        </span>
+    </div>
+);
+
+const CountdownTimer = () => {
+  // SET YOUR LAUNCH DATE HERE
+  const launchDate = new Date("2025-08-15T12:00:00Z").getTime();
+  const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = launchDate - now;
+
+      if (distance < 0) {
+        clearInterval(interval);
+        return;
+      }
+
+      setTimeLeft({
+        d: Math.floor(distance / (1000 * 60 * 60 * 24)),
+        h: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        m: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+        s: Math.floor((distance % (1000 * 60)) / 1000),
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [launchDate]);
+
+  const pad = (num: number) => num.toString().padStart(2, '0');
+
+  return (
+    <div className="flex items-start gap-4 md:gap-8">
+        <CountdownUnit value={pad(timeLeft.d)} label="DAYS" />
+        <span className="font-display font-black text-4xl md:text-6xl text-foreground/50">:</span>
+        <CountdownUnit value={pad(timeLeft.h)} label="HOURS" />
+        <span className="font-display font-black text-4xl md:text-6xl text-foreground/50">:</span>
+        <CountdownUnit value={pad(timeLeft.m)} label="MINS" />
+        <span className="font-display font-black text-4xl md:text-6xl text-foreground/50">:</span>
+        <CountdownUnit value={pad(timeLeft.s)} label="SECS" />
+    </div>
+  );
+};
+
+export default CountdownTimer;
+
+### .\src\components\modules\GatewayAnimation.tsx ###
+
+"use client";
+
+import { motion } from "framer-motion";
+import Image from 'next/image';
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useState, useEffect, useMemo, useCallback } from 'react';
+
+// ==================================================================
+// OPTIMIZED CONSTANTS AND VARIANTS
+// ==================================================================
+
+// Pre-computed variants for better performance
+const DESKTOP_VARIANTS = {
+  container: {
+    hidden: {},
+    visible: { transition: { delayChildren: 1.2, staggerChildren: 1.2 } },
+  },
+  logoContainer: {
+    hidden: { width: 0, opacity: 0, scale: 0 },
+    visible: {
+      width: 'auto', 
+      opacity: 1, 
+      scale: 1,
+      transition: { duration: 1.2, ease: "easeInOut" },
+    },
+  },
+  image: {
+    hidden: { rotate: -180 },
+    visible: { rotate: 0, transition: { duration: 1, delay: 1.2 } }
+  }
+};
+
+const MOBILE_VARIANTS = {
+  container: {
+    visible: {
+      transition: {
+        staggerChildren: 0.6,
+      }
+    }
+  },
+  logoContainer: {
+    hidden: { opacity: 0, scale: 0.5 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 1.0, ease: "easeInOut", delay: 0.4 } }
+  },
+  logoRotation: {
+    hidden: { rotate: -180 },
+    visible: { rotate: 0, transition: { duration: 1.2, ease: "easeInOut" } }
+  },
+  text: {
+    hidden: { y: "100%", opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: "easeInOut" } }
+  }
+};
+
+// Pre-computed text split for desktop
+const TEXT = "SWAMBASIC";
+const TEXT_FIRST_PART = TEXT.slice(0, 4).split('');
+const TEXT_SECOND_PART = TEXT.slice(4).split('');
+
+// ==================================================================
+// OPTIMIZED DESKTOP LAYOUT
+// ==================================================================
+const DesktopLayout = () => {
+  // Memoized letter animations to prevent re-renders
+  const firstPartLetters = useMemo(() => 
+    TEXT_FIRST_PART.map((letter, index) => (
+      <motion.span 
+        key={`first-${index}`}
+        className="inline-block" 
+        initial={{ y: "100%" }} 
+        animate={{ y: 0 }} 
+        transition={{ duration: 0.5, delay: index * 0.1 }}
+      >
+        {letter}
+      </motion.span>
+    )), []
+  );
+
+  const secondPartLetters = useMemo(() => 
+    TEXT_SECOND_PART.map((letter, index) => (
+      <motion.span 
+        key={`second-${index}`}
+        className="inline-block" 
+        initial={{ y: "100%" }} 
+        animate={{ y: 0 }} 
+        transition={{ duration: 0.5, delay: (4 + index) * 0.1 }}
+      >
+        {letter}
+      </motion.span>
+    )), []
+  );
+
+  return (
+    <motion.div 
+      layout
+      className="flex items-center justify-center" 
+      variants={DESKTOP_VARIANTS.container} 
+      initial="hidden" 
+      animate="visible"
+    >
+      <span className="font-heading text-4xl md:text-6xl font-extrabold tracking-widest uppercase overflow-hidden text-shadow-glow">
+        {firstPartLetters}
+      </span>
+      <motion.div 
+        className="flex items-center justify-center mx-3 md:mx-4" 
+        variants={DESKTOP_VARIANTS.logoContainer}
+      >
+        <motion.div 
+          variants={DESKTOP_VARIANTS.image} 
+          className="relative w-36 h-36 md:w-56 md:h-56"
+        >
+          <Image 
+            src="/logo-rotating.GIF" 
+            alt="SWAMBASIC Logo" 
+            fill 
+            className="object-contain" 
+            unoptimized={true}
+            priority={true}
+            loading="eager"
+            sizes="(max-width: 768px) 144px, 224px"
+          />
+        </motion.div>
+      </motion.div>
+      <span className="font-heading text-4xl md:text-6xl font-extrabold tracking-widest uppercase overflow-hidden text-shadow-glow">
+        {secondPartLetters}
+      </span>
+    </motion.div>
+  );
+};
+
+// ==================================================================
+// OPTIMIZED MOBILE LAYOUT
+// ==================================================================
+const MobileLayout = () => {
+  return (
+    <motion.div 
+      className="flex flex-col items-center justify-center gap-0"
+      initial="hidden"
+      animate="visible"
+      variants={MOBILE_VARIANTS.container}
+    >
+      <motion.div variants={MOBILE_VARIANTS.logoContainer}>
+        <motion.div
+          className="relative w-60 h-60"
+          variants={MOBILE_VARIANTS.logoRotation}
+        >
+          <Image 
+            src="/logo-rotating.GIF" 
+            alt="SWAMBASIC Logo" 
+            fill 
+            className="object-contain" 
+            unoptimized={true}
+            priority={true}
+            loading="eager"
+            sizes="240px"
+          />
+        </motion.div>
+      </motion.div>
+
+      <div className="overflow-hidden">
+        <motion.span 
+          className="font-heading text-4xl font-extrabold tracking-widest uppercase inline-block text-shadow-glow"
+          variants={MOBILE_VARIANTS.text}
+        >
+          {TEXT}
+        </motion.span>
+      </div>
+    </motion.div>
+  );
+};
+
+// ==================================================================
+// OPTIMIZED MAIN COMPONENT
+// ==================================================================
+export const GatewayAnimation = () => {
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const [hasMounted, setHasMounted] = useState(false);
+
+  // Optimized mount effect
+  useEffect(() => {
+    const timer = requestAnimationFrame(() => {
+      setHasMounted(true);
+    });
+    return () => cancelAnimationFrame(timer);
+  }, []);
+
+  // Memoized layout component selection
+  const LayoutComponent = useMemo(() => {
+    if (!hasMounted) return null;
+    return isMobile ? MobileLayout : DesktopLayout;
+  }, [isMobile, hasMounted]);
+
+  // Optimized placeholder with exact dimensions
+  if (!hasMounted) {
+    return (
+      <div 
+        className="h-[184px] md:h-[224px]" 
+        style={{ 
+          contain: 'layout style paint',
+          willChange: 'auto'
+        }} 
+      />
+    );
+  }
+  
+  // Render with performance optimizations
+  return (
+    <div 
+      style={{ 
+        contain: 'layout style paint',
+        willChange: 'transform, opacity'
+      }}
+    >
+      {LayoutComponent && <LayoutComponent key={isMobile ? "mobile" : "desktop"} />}
+    </div>
+  );
+};
+
+### .\src\components\modules\WaitlistForm.tsx ###
+
+"use client";
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useSound } from '@/hooks/useSound';
+
+export const WaitlistForm = () => {
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+  const playHoverSound = useSound('/audio/hover.mp3', 0.3);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus('loading');
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, phone }),
+      });
+
+      // DEBUG: Log response details
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      console.log('Response headers:', response.headers);
+
+      // Check if response has content and is JSON
+      let data = null;
+      const contentType = response.headers.get('content-type');
+      
+      console.log('Content-Type:', contentType); // DEBUG
+      
+      if (contentType && contentType.includes('application/json')) {
+        const text = await response.text();
+        console.log('Response text:', text); // DEBUG
+        
+        if (text) {
+          try {
+            data = JSON.parse(text);
+            console.log('Parsed data:', data); // DEBUG
+          } catch (parseError) {
+            console.error('Failed to parse JSON:', parseError);
+            data = { error: 'Invalid response from server' };
+          }
+        }
+      } else {
+        // If it's not JSON, let's see what we got
+        const text = await response.text();
+        console.log('Non-JSON response text:', text);
+      }
+
+      console.log('Final data object:', data); // DEBUG
+
+      if (response.ok) {
+        console.log('Response was OK, setting success'); // DEBUG
+        setStatus('success');
+        setMessage("You're on the list. We'll be in touch.");
+        setEmail('');
+        setPhone('');
+      } else {
+        console.log('Response was NOT OK, setting error'); // DEBUG
+        setStatus('error');
+        setMessage(data?.error || `Server error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      setStatus('error');
+      setMessage('Network error. Please try again.');
+    }
+  };
+
+  return (
+    <div className="w-full max-w-sm mt-4 text-center">
+      {/* The main form is a flex column with a gap */}
+      <form onSubmit={handleSubmit} className="flex flex-col items-stretch gap-4">
+        
+        {/* ================================================================== */}
+        {/* NEW LAYOUT: A horizontal flex container for the inputs.          */}
+        {/* ================================================================== */}
+        <div className='flex flex-row gap-4'>
+            {/* Input 1: Email (shorter width) */}
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              // UPDATED: rounded-3xl and adjusted placeholder text
+              className="h-11 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
+              disabled={status === 'loading' || status === 'success'}
+            />
+            {/* Input 2: Phone (shorter width) */}
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone"
+              // UPDATED: rounded-3xl and adjusted placeholder text
+              className="h-11 w-1/2 flex-grow px-4 bg-white/5 border border-white/20 backdrop-blur-sm rounded-3xl focus:outline-none focus:border-white/50 transition-all duration-300 placeholder-foreground/50 font-sans"
+              disabled={status === 'loading' || status === 'success'}
+            />
+        </div>
+
+        {/* The button is now a direct child of the flex column, placing it below */}
+        <motion.button
+          type="submit"
+          disabled={status === 'loading' || status === 'success'}
+          // UPDATED: rounded-3xl
+          className="h-11 px-6 bg-white/10 border border-white/20 backdrop-blur-sm rounded-3xl font-sans font-semibold text-white transition-all duration-300 disabled:opacity-50 hover:border-white/40 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          whileTap={{ scale: status !== 'loading' ? 0.95 : 1 }}
+          onMouseEnter={playHoverSound}
+        >
+          {status === 'loading' ? '...' : 'Join The Waitlist'}
+        </motion.button>
+      </form>
+      
+      {message && (
+        <p className={`mt-3 text-sm ${status === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+          {message}
+        </p>
+      )}
+    </div>
+  );
+};
+
+### .\src\components\modules\account\Addresses.tsx ###
+
+"use client";
+
+// Define the structure of an address object
+interface Address {
+  address1: string;
+  address2?: string; // Optional property
+  city: string;
+  province: string;
+  zip: string;
+  country: string;
+}
+
+// Placeholder data, to be replaced by Shopify customer addresses
+const placeholderAddress: Address = {
+  address1: '42,',
+  address2: 'Dhanraj Villa',
+  city: 'Jaipur',
+  province: 'Rajasthan',
+  zip: '302020',
+  country: 'India'
+};
+
+// Define the props for our AddressCard component
+const AddressCard = ({ address }: { address: Address }) => (
+  <div className="p-6 border border-white/10 rounded-lg">
+    <p className="font-sans">
+      {address.address1}<br />
+      {address.address2 && <>{address.address2}<br /></>}
+      {address.city}, {address.province} {address.zip}<br />
+      {address.country}
+    </p>
+    <div className="mt-4 flex gap-4 font-sans text-xs uppercase tracking-wider">
+      <button className="hover:text-white">Edit</button>
+      <button className="hover:text-red-400">Delete</button>
+    </div>
+  </div>
+);
+
+const Addresses = () => {
+  return (
+    <div className="max-w-lg space-y-8">
+        <div className="flex justify-between items-center">
+            <h2 className="font-display text-3xl font-bold">Your Addresses</h2>
+            <button className="px-6 py-2 border border-white/50 text-xs font-sans uppercase tracking-wider hover:bg-white hover:text-black transition-colors">
+                Add New
+            </button>
+        </div>
+        <div className="space-y-4">
+            <AddressCard address={placeholderAddress} />
+            {/* We will map over multiple addresses here later */}
+        </div>
+    </div>
+  );
+};
+
+export default Addresses;
+
+### .\src\components\modules\account\OrderHistory.tsx ###
+
+"use client";
+
+// Define the structure of our order data for TypeScript
+interface Order {
+  id: string;
+  date: string;
+  status: 'Fulfilled' | 'Unfulfilled';
+  total: string;
+}
+
+// Using placeholder data until we connect to Shopify
+const placeholderOrders: Order[] = [
+  { id: '#SB2025-004', date: 'July 15, 2025', status: 'Fulfilled', total: '370.00' },
+  { id: '#SB2025-003', date: 'July 12, 2025', status: 'Fulfilled', total: '120.00' },
+  { id: '#SB2025-002', date: 'July 10, 2025', status: 'Unfulfilled', total: '420.00' },
+  { id: '#SB2025-001', date: 'July 05, 2025', status: 'Fulfilled', total: '80.00' },
+];
+
+// Define the props for our OrderCard component
+const OrderCard = ({ order }: { order: Order }) => (
+  <div className="p-6 border border-white/10 rounded-lg flex justify-between items-center transition-colors hover:bg-white/5">
+    <div className="flex flex-col">
+      <span className="font-display font-bold text-lg">{order.id}</span>
+      <span className="font-sans text-xs text-white/50 mt-1">{order.date}</span>
+    </div>
+    <div className="text-right">
+      <span className={`font-sans text-xs uppercase tracking-widest px-2 py-1 rounded ${order.status === 'Fulfilled' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+        {order.status}
+      </span>
+      <p className="font-mono text-lg mt-2">${order.total}</p>
+    </div>
+  </div>
+);
+
+const OrderHistory = () => {
+  return (
+    <div className="flex flex-col gap-4">
+      {placeholderOrders.map(order => (
+        <OrderCard key={order.id} order={order} />
+      ))}
+    </div>
+  );
+};
+
+export default OrderHistory;
+
+### .\src\components\modules\account\ProfileDetails.tsx ###
+
+"use client";
+import React from 'react';
+
+// Define the structure of the props for our input component
+interface FormInputProps {
+  label: string;
+  type: string;
+  id: string;
+  value: string;
+}
+
+// Reusable styled input component with correctly typed props
+const FormInput = ({ label, type, id, value }: FormInputProps) => (
+  <div>
+    <label htmlFor={id} className="font-sans text-xs uppercase tracking-wider text-white/50">
+      {label}
+    </label>
+    <input
+      type={type}
+      id={id}
+      defaultValue={value}
+      className="mt-2 w-full px-4 py-3 bg-white/5 border border-white/20 rounded-md focus:outline-none focus:border-white/50 transition-colors font-sans"
+    />
+  </div>
+);
+
+const ProfileDetails = () => {
+  // Placeholder data, to be replaced by Shopify customer data
+  const user = {
+    firstName: 'Manan',
+    lastName: 'Kadel',
+    email: 'manankadel@gmail.com'
+  };
+
+  return (
+    <form onSubmit={(e) => e.preventDefault()} className="max-w-lg space-y-6">
+      <h2 className="font-display text-3xl font-bold">Profile Details</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormInput label="First Name" type="text" id="firstName" value={user.firstName} />
+        <FormInput label="Last Name" type="text" id="lastName" value={user.lastName} />
+      </div>
+      <FormInput label="Email Address" type="email" id="email" value={user.email} />
+      <div>
+        <button
+          type="submit"
+          className="px-8 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest"
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default ProfileDetails;
+
+### .\src\components\modules\glitch\GlitchCanvas.tsx ###
+
+"use client";
+import * as THREE from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useMemo } from 'react';
+
+const vertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = `
+  varying vec2 vUv;
+  uniform float u_time;
+  uniform vec2 u_mouse;
+  uniform sampler2D u_last_frame;
+
+  float rand(vec2 n) { 
+    return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+  }
+
+  void main() {
+    vec4 lastFrameColor = texture2D(u_last_frame, vUv) * 0.95;
+    float dist = distance(vUv, u_mouse);
+    float brush = smoothstep(0.1, 0.0, dist);
+    float r = rand(vUv + u_time);
+    vec2 offset = vec2(r * 0.05, 0.0) * brush;
+    vec4 glitchColor = texture2D(u_last_frame, vUv + offset);
+    gl_FragColor = max(lastFrameColor, glitchColor * brush);
+  }
+`;
+
+function Scene() {
+  const { size, viewport, gl, camera, clock, pointer } = useThree();
+  
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      u_time: { value: 0 },
+      u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
+      u_last_frame: { value: new THREE.Texture() },
+    },
+    vertexShader,
+    fragmentShader,
+  }), []);
+
+  const fbo1 = useMemo(() => new THREE.WebGLRenderTarget(size.width, size.height), [size]);
+  const fbo2 = useMemo(() => new THREE.WebGLRenderTarget(size.width, size.height), [size]);
+  const quad = useMemo(() => new THREE.Mesh(new THREE.PlaneGeometry(viewport.width, viewport.height), material), [viewport, material]);
+
+  useFrame(() => {
+    material.uniforms.u_time.value = clock.getElapsedTime();
+    
+    // THIS IS THE CORRECT MOUSE TRACKING LOGIC
+    material.uniforms.u_mouse.value.lerp(new THREE.Vector2(
+      (pointer.x + 1) / 2,
+      1.0 - (pointer.y + 1) / 2 // The Y-axis is now correctly inverted
+    ), 0.1);
+
+    material.uniforms.u_last_frame.value = fbo1.texture;
+    
+    gl.setRenderTarget(fbo2);
+    gl.render(quad, camera);
+    
+    gl.setRenderTarget(null);
+    gl.render(quad, camera);
+
+    const temp = fbo1;
+    fbo1.copy(fbo2);
+  });
+  
+  return <primitive object={quad} />;
+}
+
+export const GlitchCanvas = () => {
+  return (
+    <div className="absolute inset-0 z-20 mix-blend-screen pointer-events-none">
+      <Canvas camera={{ position: [0, 0, 1] }}>
+        <Scene />
+      </Canvas>
+    </div>
+  );
+};
+
+### .\src\components\modules\homepage\BrandManifesto.tsx ###
+
+"use client";
+import { motion } from 'framer-motion';
+
+const text = "We are not for everyone. SWAMBASIC is a rejection of the ordinary, a uniform for the discerning individual who moves between worlds. This is luxury defined not by a price tag, but by a perspective.";
+
+export const BrandManifesto = () => {
+  return (
+    <section className="py-12 px-6 md:px-12 bg-black flex justify-center">
+      <motion.div 
+        className="max-w-3xl text-center"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.5 }}
+        transition={{ staggerChildren: 0.05 }}
+      >
+        <h2 className="font-display font-bold text-4xl md:text-6xl mb-8">
+          <motion.span variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8 } } }}>
+            The Philosophy
+          </motion.span>
+        </h2>
+        <p className="font-sans text-base md:text-xl leading-relaxed text-white/70">
+          {text.split(' ').map((word, i) => (
+            <motion.span
+              key={i}
+              className="inline-block"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1 }
+              }}
+              transition={{ duration: 0.5 }}
+            >
+              {word} 
+            </motion.span>
+          ))}
+        </p>
+      </motion.div>
+    </section>
+  );
+};
+
+### .\src\components\modules\homepage\FeaturedProducts.tsx ###
+
+"use client";
+
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import Image from 'next/image';
+import Link from 'next/link';
+
+// Import our Shopify functions and types
+import { getProducts } from '@/lib/shopify';
+import { ShopifyProduct } from '@/types/shopify';
+
+// This is the new Product Card component. It is designed to accept REAL Shopify data.
+const ProductCard = ({ product }: { product: ShopifyProduct }) => (
+  <Link href={`/products/${product.handle}`} passHref>
+    <motion.div className="flex-shrink-0 w-80" whileHover={{ y: -5 }}>
+      <div className="w-full h-96 bg-white/5 flex items-center justify-center rounded-md overflow-hidden">
+          {product.featuredImage ? (
+            <Image 
+                src={product.featuredImage.url}
+                alt={product.featuredImage.altText || product.title}
+                width={product.featuredImage.width}
+                height={product.featuredImage.height}
+                className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-sm">No Image</span>
+          )}
+      </div>
+      <div className="mt-4 text-left">
+        <h3 className="font-sans font-semibold">{product.title}</h3>
+        <p className="font-mono text-sm">${product.priceRange.minVariantPrice.amount}</p>
+      </div>
+    </motion.div>
+  </Link>
+);
+
+// This is the updated main component that fetches live data.
+export const FeaturedProducts = () => {
+  // State to hold the live products from Shopify
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  // State to handle loading feedback
+  const [isLoading, setIsLoading] = useState(true);
+
+  // This useEffect hook runs once when the component mounts
+  useEffect(() => {
+    // We create an async function inside to fetch the data
+    const fetchProducts = async () => {
+      try {
+        // We call our getProducts function from shopify.ts
+        const fetchedProducts = await getProducts(4); // Fetch the first 4 products
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []); // The empty array means this effect only runs once
+
+  // Handle the loading state
+  if (isLoading) {
+    return (
+        <section className="py-24 px-6 md:px-12 bg-black text-center">
+            <h2 className="font-display text-4xl mb-12">Featured Collection</h2>
+            <p className="font-sans text-white/50">Loading Products...</p>
+        </section>
+    );
+  }
+
+  return (
+    <section className="py-24 px-6 md:px-12 bg-black">
+      <h2 className="font-display text-4xl mb-12 text-center">Featured Collection</h2>
+      <div className="flex justify-center">
+        <div className="flex gap-8 overflow-x-auto pb-4 max-w-7xl">
+            {products.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+### .\src\components\modules\homepage\HeroSection.tsx ###
+
+"use client";
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+
+export const HeroSection = () => {
+  return (
+    <section className="relative h-screen w-screen flex items-center justify-center">
+      {/* Video Background */}
+      <video
+        src="/hero-video.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline // Important for mobile browsers
+        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+      />
+      {/* Dark Overlay */}
+      <div className="absolute top-0 left-0 w-full h-full bg-black/50 -z-10" />
+
+      {/* Centered Content */}
+      <motion.div 
+        className="text-center text-white z-10 "
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.5 }}
+      >
+        <h1 className="font-display font-black text-5xl md:text-8xl uppercase">
+          First Drop Is Live
+        </h1>
+        <p className="font-sans mt-4 max-w-lg">
+          Explore the inaugural collection. Limited quantities available.
+        </p>
+        <Link href="/catalog" passHref>
+          <motion.button 
+            className="mt-8 px-8 py-4 bg-white/90 rounded-3xl text-black font-sans font-bold uppercase tracking-widest"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Shop Now
+          </motion.button>
+        </Link>
+      </motion.div>
+    </section>
+  );
+};
+
+### .\src\hooks\useMediaQuery.ts ###
+
+"use client";
+
+import { useState, useEffect } from 'react';
+
+/**
+ * A custom hook to track the state of a CSS media query.
+ * @param query The media query string to watch (e.g., '(max-width: 767px)').
+ * @returns A boolean indicating whether the media query matches.
+ */
+export const useMediaQuery = (query: string): boolean => {
+  // Ensure this runs only on the client
+  const [matches, setMatches] = useState<boolean>(
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  );
+
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia(query);
+    const listener = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
+
+    // Use the modern addEventListener/removeEventListener
+    mediaQueryList.addEventListener('change', listener);
+    
+    // Check again on mount in case the initial state was stale
+    setMatches(mediaQueryList.matches);
+
+    return () => {
+      mediaQueryList.removeEventListener('change', listener);
+    };
+  }, [query]);
+
+  return matches;
+};
+
+### .\src\hooks\useSound.ts ###
+
+"use client";
+
+import { useCallback } from 'react';
+
+/**
+ * A custom hook to play a sound effect.
+ * @param soundPath The path to the sound file from the `public` directory.
+ * @param volume The volume to play the sound at (0.0 to 1.0). Defaults to 0.5.
+ * @returns A `play` function to trigger the sound.
+ */
+export const useSound = (soundPath: string, volume: number = 0.5) => {
+  const play = useCallback(() => {
+    // We create a new Audio object on each play call.
+    // This is simple and effective for short, non-overlapping SFX.
+    const audio = new Audio(soundPath);
+    audio.volume = volume;
+    audio.play().catch(e => {
+      // Audio playback can sometimes be blocked by the browser, so we log errors silently.
+      console.error(`Could not play sound ${soundPath}:`, e);
+    });
+  }, [soundPath, volume]);
+
+  return play;
+};
+
+### .\src\lib\shopify.ts ###
+
+import { ShopifyProductsResponseBody, ShopifyProduct } from '@/types/shopify';
+
+const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!;
+const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!;
+
+async function shopifyFetch<T>({
+  query,
+  variables,
+}: {
+  query: string;
+  variables?: Record<string, unknown>;
+}): Promise<{ status: number; body: T }> {
+  try {
+    const endpoint = `https://${domain}/api/2024-07/graphql.json`;
+
+    const result = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    const body = await result.json();
+
+    if (body.errors) {
+      throw new Error(body.errors[0].message);
+    }
+
+    return {
+      status: result.status,
+      body,
+    };
+  } catch (e) {
+    // THE FIX IS HERE.
+    // We now check if 'e' is an instance of Error before accessing e.message.
+    if (e instanceof Error) {
+        throw new Error(`Shopify API call failed: ${e.message}`);
+    }
+    // If it's not a standard Error object, we handle it gracefully.
+    throw new Error('An unknown error occurred during the Shopify API call.');
+  }
+}
+
+const getProductsQuery = `
+  query getProducts($first: Int!) {
+    products(first: $first) {
+      edges {
+        node {
+          id
+          handle
+          title
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+    }
+  }
+`;
+
+export async function getProducts(count: number): Promise<ShopifyProduct[]> {
+  const res = await shopifyFetch<ShopifyProductsResponseBody>({
+    query: getProductsQuery,
+    variables: { first: count },
+  });
+  return res.body.data.products.edges.map((edge) => edge.node);
+}
+
+### .\src\types\global.d.ts ###
+
+import { Object3DNode } from '@react-three/fiber';
+import { ShaderMaterial } from 'three';
+
+declare module '@react-three/fiber' {
+  interface ThreeElements {
+    liquidGradientMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+     glitchTrailMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+  }
+}
+
+### .\src\types\shopify.d.ts ###
+
+// Defines the structure of the data we expect back from the Storefront API
+
+interface ShopifyImage {
+  url: string;
+  altText: string;
+  width: number;
+  height: number;
+}
+
+interface ShopifyPrice {
+  amount: string;
+  currencyCode: string;
+}
+
+export interface ShopifyProduct {
+  id: string;
+  handle: string;
+  title: string;
+  priceRange: {
+    minVariantPrice: ShopifyPrice;
+  };
+  featuredImage: ShopifyImage;
+}
+
+// Defines the structure of the entire API response body for the products query
+export interface ShopifyProductsResponseBody {
+  data: {
+    products: {
+      edges: {
+        node: ShopifyProduct;
+      }[];
+    };
+  };
+}
+
+### .\tailwind.config.ts ###
+
+import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
+
+const config: Config = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'background': '#000000',
+        'foreground': '#FFFFFF',
+      },
+       fontFamily: {
+        sans: ['var(--font-poppins)', 'sans-serif'],
+        display: ['var(--font-unbounded)', 'sans-serif'], 
+        heading: ['var(--font-genoa)', 'sans-serif'],
+      },
+      // NEW: Add text-shadow theme extension
+      textShadow: {
+        'glow': '0 0 8px rgba(255, 255, 255, 0.5)',
+      },
+    },
+  },
+  // NEW: Add the textShadow plugin
+  plugins: [
+    plugin(function ({ matchUtilities, theme }) {
+      matchUtilities(
+        {
+          'text-shadow': (value) => ({
+            textShadow: value,
+          }),
+        },
+        { values: theme('textShadow') }
+      )
+    }),
+  ],
+}
+export default config
+
+### .\tsconfig.json ###
+
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "next.config.mjs"],
+  "exclude": ["node_modules"]
+}

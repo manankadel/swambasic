@@ -4,6 +4,7 @@ import { fontPoppins, fontUnbounded, fontGenoa } from './fonts';
 import { BackgroundMusicPlayer } from '@/components/core/BackgroundMusicPlayer';
 import { GlobalSoundEffects } from '@/components/core/GlobalSoundEffects';
 import { AppHeightProvider } from '@/components/core/AppHeightProvider'; // <-- IMPORT THE NEW PROVIDER
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata = {
   title: 'SWAMBASIC - Coming Soon',
@@ -23,6 +24,7 @@ export default function RootLayout({
         'dark'
       ].join(' ')}>
       <body>
+        <Analytics/>
         {/* WRAP everything in the AppHeightProvider */}
         <AppHeightProvider>
             <GlobalSoundEffects />
