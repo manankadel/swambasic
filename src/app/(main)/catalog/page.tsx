@@ -3,11 +3,14 @@
 import { getProducts } from '@/lib/shopify';
 import { ProductCard } from '@/components/modules/products/ProductCard';
 
-// This is a Server Component, so it can be async and fetch data directly.
+// THE FIX: This line explicitly tells Next.js that this page must be
+// rendered dynamically on the server for each request. It will not be
+// made into a static page at build time.
+export const dynamic = 'force-dynamic';
+
 export default async function CatalogPage() {
   
-  // Fetch all available products. We'll fetch the first 24 for this example.
-  // You can implement pagination later if you have more.
+  // Fetching the first 24 products
   const products = await getProducts(24);
 
   return (
@@ -20,7 +23,6 @@ export default async function CatalogPage() {
             </p>
         </div>
 
-        {/* Responsive grid for the products */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
             {products.map(product => (
               <ProductCard key={product.id} product={product} />

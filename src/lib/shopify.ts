@@ -33,7 +33,13 @@ async function shopifyFetch<T>({
         'X-Shopify-Storefront-Access-Token': storefrontAccessToken 
       },
       body: JSON.stringify({ query, variables }),
-      cache: 'no-store',
+
+      // THE FIX: Instead of 'no-store', we use revalidation.
+      // This tells Next.js to cache the result but consider it "stale"
+      // after 600 seconds (10 minutes). The next visitor after 10 minutes
+      // will trigger a fresh data fetch in the background.
+      next: { revalidate: 600 }
+
     });
 
     const body = await result.json();
@@ -42,7 +48,7 @@ async function shopifyFetch<T>({
       throw new Error(body.errors[0].message);
     }
 
-    return { status: result.status, body }; // This return statement is crucial
+    return { status: result.status, body };
 
   } catch (e) {
     if (e instanceof Error) {
@@ -51,6 +57,7 @@ async function shopifyFetch<T>({
     throw new Error('An unknown error occurred during the Shopify API call.');
   }
 }
+
 
 // Fetches a list of products
 const getProductsQuery = `
