@@ -1,22 +1,21 @@
 // src/lib/shopify.ts
 
-import {
-  ShopifyProductsResponseBody,
+import { 
+  ShopifyProductsResponseBody, 
   ShopifyProduct,
-  ShopifyCustomerCreateResponseBody,
   ShopifyCustomerLoginResponseBody,
-  CustomerCreatePayload,
   CustomerLoginPayload,
   ShopifyCustomerDataResponseBody,
   ShopifyCustomer,
   ShopifyAddressCreateResponseBody,
   ShopifyCustomerUpdateResponseBody,
-  NewAddressInput // <-- We will now import this type
+  NewAddressInput
 } from '@/types/shopify';
 
 const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!;
 const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!;
 
+// The core function to communicate with Shopify's GraphQL API
 async function shopifyFetch<T>({
   query,
   variables,
@@ -29,21 +28,31 @@ async function shopifyFetch<T>({
 
     const result = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': storefrontAccessToken, },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-Shopify-Storefront-Access-Token': storefrontAccessToken 
+      },
       body: JSON.stringify({ query, variables }),
       cache: 'no-store',
     });
 
     const body = await result.json();
-    if (body.errors) { throw new Error(body.errors[0].message); }
-    return { status: result.status, body, };
+
+    if (body.errors) {
+      throw new Error(body.errors[0].message);
+    }
+
+    return { status: result.status, body }; // This return statement is crucial
+
   } catch (e) {
-    if (e instanceof Error) { throw new Error(`Shopify API call failed: ${e.message}`); }
+    if (e instanceof Error) {
+      throw new Error(`Shopify API call failed: ${e.message}`);
+    }
     throw new Error('An unknown error occurred during the Shopify API call.');
   }
 }
 
-// === PRODUCTS ===
+// Fetches a list of products
 const getProductsQuery = `
   query getProducts($first: Int!) {
     products(first: $first) {
@@ -69,7 +78,6 @@ const getProductsQuery = `
     }
   }
 `;
-
 export async function getProducts(count: number): Promise<ShopifyProduct[]> {
   const res = await shopifyFetch<ShopifyProductsResponseBody>({
     query: getProductsQuery,
@@ -78,17 +86,7 @@ export async function getProducts(count: number): Promise<ShopifyProduct[]> {
   return res.body.data.products.edges.map((edge) => edge.node);
 }
 
-
-// === CUSTOMER AUTHENTICATION ===
-const customerCreateMutation = `
-  mutation customerCreate($input: CustomerCreateInput!) {
-    customerCreate(input: $input) {
-      customerUserErrors { code field message }
-      customer { id firstName lastName email }
-    }
-  }
-`;
-
+// Logs a customer in by creating an access token
 const customerLoginMutation = `
   mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
     customerAccessTokenCreate(input: $input) {
@@ -97,15 +95,6 @@ const customerLoginMutation = `
     }
   }
 `;
-
-export async function createCustomer(input: Record<string, unknown>): Promise<CustomerCreatePayload> {
-    const res = await shopifyFetch<ShopifyCustomerCreateResponseBody>({
-        query: customerCreateMutation,
-        variables: { input }
-    });
-    return res.body.data.customerCreate;
-}
-
 export async function loginCustomer(input: Record<string, unknown>): Promise<CustomerLoginPayload> {
     const res = await shopifyFetch<ShopifyCustomerLoginResponseBody>({
         query: customerLoginMutation,
@@ -114,7 +103,7 @@ export async function loginCustomer(input: Record<string, unknown>): Promise<Cus
     return res.body.data.customerAccessTokenCreate;
 }
 
-// === CUSTOMER DATA & MANAGEMENT ===
+// Fetches the full data for an authenticated customer
 const getCustomerQuery = `
   query getCustomer($customerAccessToken: String!) {
     customer(customerAccessToken: $customerAccessToken) {
@@ -131,25 +120,6 @@ const getCustomerQuery = `
     }
   }
 `;
-
-const customerUpdateMutation = `
-  mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
-    customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
-      customer { id firstName lastName }
-      customerUserErrors { code field message }
-    }
-  }
-`;
-
-const customerAddressCreateMutation = `
-  mutation customerAddressCreate($customerAccessToken: String!, $address: MailingAddressInput!) {
-    customerAddressCreate(customerAccessToken: $customerAccessToken, address: $address) {
-      customerAddress { id }
-      customerUserErrors { code field message }
-    }
-  }
-`;
-
 export async function getCustomer(customerAccessToken: string): Promise<ShopifyCustomer | null> {
     const res = await shopifyFetch<ShopifyCustomerDataResponseBody>({
         query: getCustomerQuery,
@@ -158,6 +128,15 @@ export async function getCustomer(customerAccessToken: string): Promise<ShopifyC
     return res.body.data.customer;
 }
 
+// Updates a customer's profile details
+const customerUpdateMutation = `
+  mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
+    customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
+      customer { id firstName lastName }
+      customerUserErrors { code field message }
+    }
+  }
+`;
 export async function updateCustomer(token: string, customerData: { firstName: string, lastName: string }): Promise<any> {
     const res = await shopifyFetch<ShopifyCustomerUpdateResponseBody>({
         query: customerUpdateMutation,
@@ -169,6 +148,15 @@ export async function updateCustomer(token: string, customerData: { firstName: s
     return res.body.data.customerUpdate;
 }
 
+// Creates a new address for an authenticated customer
+const customerAddressCreateMutation = `
+  mutation customerAddressCreate($customerAccessToken: String!, $address: MailingAddressInput!) {
+    customerAddressCreate(customerAccessToken: $customerAccessToken, address: $address) {
+      customerAddress { id }
+      customerUserErrors { code field message }
+    }
+  }
+`;
 export async function createCustomerAddress(token: string, address: NewAddressInput): Promise<any> {
     const res = await shopifyFetch<ShopifyAddressCreateResponseBody>({
         query: customerAddressCreateMutation,
