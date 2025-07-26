@@ -30,3 +30,32 @@ body {
     background-position: -200% 0;
   }
 }
+/* ADD THIS CODE AT THE END OF THE FILE */
+
+@keyframes liquid-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* src/app/globals.css */
+
+/* Add this at the end of the file */
+@keyframes scroll-left {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-left {
+  animation: scroll-left 40s linear infinite;
+}

@@ -4,7 +4,6 @@ README.md
 code_dump.txt
 dump_project.py
 eslint.config.mjs
-middleware.ts
 next-env.d.ts
 next.config.mjs
 package.json
@@ -22,6 +21,8 @@ src/
         addresses/
           page.tsx
         layout.tsx
+        login/
+          page.tsx
         orders/
           page.tsx
         page.tsx
@@ -32,9 +33,23 @@ src/
       home/
         page.tsx
       layout.tsx
+      login/
+        page.tsx
     api/
       access/
         route.ts
+      account/
+        addAddress/
+          route.ts
+        updateProfile/
+          route.ts
+      auth/
+        login/
+          route.ts
+        logout/
+          route.ts
+        register/
+          route.ts
       waitlist/
         route.ts
     fonts.ts
@@ -51,14 +66,18 @@ src/
       GlobalSoundEffects.tsx
       Header.tsx
       InteractiveLiquidBackground.tsx
+      LiquidGradient.tsx
     modules/
       CountdownTimer.tsx
       GatewayAnimation.tsx
       WaitlistForm.tsx
       account/
         Addresses.tsx
+        LoginRegister.tsx
         OrderHistory.tsx
         ProfileDetails.tsx
+      auth/
+        AuthForm.tsx
       glitch/
         GlitchCanvas.tsx
       homepage/
@@ -69,7 +88,9 @@ src/
     useMediaQuery.ts
     useSound.ts
   lib/
+    constants.ts
     shopify.ts
+  middleware.ts
   styles/
   types/
     global.d.ts

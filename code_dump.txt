@@ -11,7 +11,7 @@ SHOPIFY_ADMIN_ACCESS_TOKEN="pvt"
 
 # Site Access
 SITE_ACCESS_PASSWORD="pvt"
-SESSION_SECRET="pvt"
+SESSION_SECRET="hzKEiwAaoCvCr0EPnLzIpWBL10qmo5Fc"
 
 ### .\.gitignore ###
 
@@ -180,27 +180,6 @@ const eslintConfig = [
 export default eslintConfig;
 
 
-### .\middleware.ts ###
-
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-
-export function middleware(request: NextRequest) {
-  console.log('🔥 MIDDLEWARE RUNNING:', request.nextUrl.pathname)
-  
-  // Block /home specifically
-  if (request.nextUrl.pathname === '/home') {
-    console.log('🚫 BLOCKING /home - redirecting to /')
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-  
-  return NextResponse.next()
-}
-
-export const config = {
-  matcher: ['/home']
-}
-
 ### .\next-env.d.ts ###
 
 /// <reference types="next" />
@@ -261,6 +240,8 @@ export default nextConfig;
     "@react-three/drei": "^9.107.0",
     "@react-three/fiber": "^8.16.8",
     "@shopify/hydrogen-react": "^2025.4.0",
+    "@vercel/analytics": "^1.5.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^11.2.12",
     "next": "14.2.4",
     "react": "^18.2.0",
@@ -310,9 +291,24 @@ export default config;
 ### .\src\app\(main)\account\addresses\page.tsx ###
 
 import Addresses from '@/components/modules/account/Addresses';
+// We use the same logic to fetch the customer data
+import { getCustomer } from '@/lib/shopify';
+import { cookies } from 'next/headers';
 
-const AccountAddressesPage = () => {
-  return <Addresses />;
+// This page is now a Server Component
+const AccountAddressesPage = async () => {
+  const cookieStore = cookies();
+  const customerAccessToken = cookieStore.get('swambasic_customer_token')?.value;
+
+  if (!customerAccessToken) {
+    return <Addresses addresses={[]} />;
+  }
+  
+  const customer = await getCustomer(customerAccessToken);
+  // We extract the addresses from the customer object
+  const addresses = customer ? customer.addresses.edges.map(edge => edge.node) : [];
+
+  return <Addresses addresses={addresses} />;
 };
 
 export default AccountAddressesPage;
@@ -321,13 +317,12 @@ export default AccountAddressesPage;
 
 "use client";
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const accountNavLinks = [
   { name: 'Order History', href: '/account/orders' },
   { name: 'Profile Details', href: '/account/profile' },
   { name: 'Addresses', href: '/account/addresses' },
-  { name: 'Logout', href: '/account/logout' },
 ];
 
 export default function AccountLayout({
@@ -336,13 +331,26 @@ export default function AccountLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Logout ka function
+  const handleLogout = async () => {
+    try {
+      // API call to delete the cookie
+      await fetch('/api/auth/logout', { method: 'POST' });
+      // Redirect to login page
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         <h1 className="font-display text-4xl md:text-5xl font-bold mb-8 md:mb-12">Personal Hub</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-          {/* Left Column: Navigation */}
           <aside className="md:col-span-1">
             <nav className="flex flex-col gap-4">
               {accountNavLinks.map(link => {
@@ -361,9 +369,15 @@ export default function AccountLayout({
                   </Link>
                 );
               })}
+              {/* Yeh hai Logout button */}
+              <button
+                onClick={handleLogout}
+                className="text-left font-sans uppercase tracking-wider text-sm border-l-2 pl-4 transition-colors text-white/50 border-white/20 hover:text-white hover:border-white"
+              >
+                Logout
+              </button>
             </nav>
           </aside>
-          {/* Right Column: Content */}
           <section className="md:col-span-3">
             {children}
           </section>
@@ -373,12 +387,52 @@ export default function AccountLayout({
   );
 }
 
+### .\src\app\(main)\account\login\page.tsx ###
+
+import { AuthForm } from '@/components/modules/auth/AuthForm';
+// THE FIX: This now imports the correct background component that we created.
+import { SubtleSmokeBackground } from '@/components/core/SubtleSmokeBackground';
+
+const LoginPage = () => {
+    return (
+        <div className="min-h-screen">
+            {/* 
+              This component doesn't need to be rendered here because the 
+              AuthForm component now contains its own Canvas and background.
+              Removing this prevents two canvases from rendering.
+            */}
+            <main className="relative min-h-screen bg-black pt-40 pb-24 px-6 md:px-12 flex items-center justify-center">
+                <div className="w-full">
+                    <AuthForm />
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default LoginPage;
+
+
 ### .\src\app\(main)\account\orders\page.tsx ###
 
 import OrderHistory from '@/components/modules/account/OrderHistory';
+import { getCustomer } from '@/lib/shopify';
+import { cookies } from 'next/headers';
 
-const AccountOrdersPage = () => {
-  return <OrderHistory />;
+// This is now a Server Component
+const AccountOrdersPage = async () => {
+  const cookieStore = cookies();
+  const customerAccessToken = cookieStore.get('swambasic_customer_token')?.value;
+
+  if (!customerAccessToken) {
+    // Middleware should handle this, but as a fallback
+    return <OrderHistory orders={[]} />;
+  }
+
+  const customer = await getCustomer(customerAccessToken);
+  const orders = customer ? customer.orders.edges.map(edge => edge.node) : [];
+
+  return <OrderHistory orders={orders} />;
 };
 
 export default AccountOrdersPage;
@@ -386,10 +440,26 @@ export default AccountOrdersPage;
 ### .\src\app\(main)\account\page.tsx ###
 
 import OrderHistory from '@/components/modules/account/OrderHistory';
+// THE FIX: We import the exact same logic as the orders page
+import { getCustomer } from '@/lib/shopify';
+import { cookies } from 'next/headers';
 
-const AccountDashboardPage = () => {
-  // For now, the main dashboard will default to showing the Order History.
-  return <OrderHistory />;
+// THE FIX: This page is now a Server Component and will fetch data
+const AccountDashboardPage = async () => {
+  const cookieStore = cookies();
+  const customerAccessToken = cookieStore.get('swambasic_customer_token')?.value;
+
+  // Agar token nahi hai, toh ek empty array bhej do
+  if (!customerAccessToken) {
+    return <OrderHistory orders={[]} />;
+  }
+
+  // Real-time data fetch karo
+  const customer = await getCustomer(customerAccessToken);
+  const orders = customer ? customer.orders.edges.map(edge => edge.node) : [];
+
+  // Component ko asli data ke saath render karo
+  return <OrderHistory orders={orders} />;
 };
 
 export default AccountDashboardPage;
@@ -397,9 +467,25 @@ export default AccountDashboardPage;
 ### .\src\app\(main)\account\profile\page.tsx ###
 
 import ProfileDetails from '@/components/modules/account/ProfileDetails';
+// We use the same logic to fetch the customer data
+import { getCustomer } from '@/lib/shopify';
+import { cookies } from 'next/headers';
 
-const AccountProfilePage = () => {
-  return <ProfileDetails />;
+// This page is now a Server Component
+const AccountProfilePage = async () => {
+  const cookieStore = cookies();
+  const customerAccessToken = cookieStore.get('swambasic_customer_token')?.value;
+
+  if (!customerAccessToken) {
+    // This is a fallback, middleware should prevent this.
+    return <ProfileDetails customer={null} />;
+  }
+
+  // Fetch the full customer object
+  const customer = await getCustomer(customerAccessToken);
+
+  // Pass the entire customer object to the component
+  return <ProfileDetails customer={customer} />;
 };
 
 export default AccountProfilePage;
@@ -545,6 +631,28 @@ export default function MainLayout({
   );
 }
 
+### .\src\app\(main)\login\page.tsx ###
+
+import { AuthForm } from '@/components/modules/auth/AuthForm';
+
+const LoginPage = () => {
+    return (
+        // THE FIX: This container now guarantees perfect vertical and horizontal centering.
+        // It takes up the full screen height and centers its child (the <main> tag).
+        <div className="min-h-screen bg-black flex items-center justify-center">
+            
+            {/* The main tag is now just a simple container for the form. */}
+            {/* All unnecessary padding has been removed. */}
+            <main className="w-full">
+                <AuthForm />
+            </main>
+            
+        </div>
+    );
+};
+
+export default LoginPage;
+
 ### .\src\app\api\access\route.ts ###
 
 import { NextResponse } from 'next/server';
@@ -606,6 +714,201 @@ export async function POST(request: Request) {
     console.error('Access API error:', error);
     return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
   }
+}
+
+### .\src\app\api\account\addAddress\route.ts ###
+
+
+
+### .\src\app\api\account\updateProfile\route.ts ###
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { updateCustomer } from '@/lib/shopify';
+
+export async function POST(request: Request) {
+    const cookieStore = cookies();
+    const token = cookieStore.get('swambasic_customer_token')?.value;
+
+    if (!token) {
+        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    try {
+        const { firstName, lastName } = await request.json();
+
+        if (!firstName || !lastName) {
+            return NextResponse.json({ error: 'First and last name are required.' }, { status: 400 });
+        }
+
+        const result = await updateCustomer(token, { firstName, lastName });
+
+        if (result.customerUserErrors && result.customerUserErrors.length > 0) {
+            return NextResponse.json({ error: result.customerUserErrors[0].message }, { status: 400 });
+        }
+
+        return NextResponse.json({ success: true, customer: result.customer }, { status: 200 });
+
+    } catch (error) {
+        return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
+    }
+}
+
+### .\src\app\api\auth\login\route.ts ###
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { loginCustomer } from '@/lib/shopify';
+
+const CUSTOMER_TOKEN_COOKIE_NAME = 'swambasic_customer_token';
+
+export async function POST(request: Request) {
+    try {
+        const { email, password } = await request.json();
+
+        if (!email || !password) {
+            return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
+        }
+
+        const loginResult = await loginCustomer({ email, password });
+
+        // Handle Shopify errors (e.g., incorrect password)
+        if (loginResult.customerUserErrors && loginResult.customerUserErrors.length > 0) {
+            return NextResponse.json({ error: loginResult.customerUserErrors[0].message }, { status: 401 });
+        }
+
+        // Handle successful login
+        if (loginResult.customerAccessToken) {
+            const { accessToken, expiresAt } = loginResult.customerAccessToken;
+            const cookieStore = cookies();
+            
+            cookieStore.set(CUSTOMER_TOKEN_COOKIE_NAME, accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                path: '/',
+                sameSite: 'strict',
+                expires: new Date(expiresAt),
+            });
+            
+            return NextResponse.json({ success: true }, { status: 200 });
+        }
+        
+        // Fallback error
+        return NextResponse.json({ error: 'An unknown error occurred during login.' }, { status: 500 });
+
+    } catch (error) {
+        console.error('Login API error:', error);
+        return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
+    }
+}
+
+### .\src\app\api\auth\logout\route.ts ###
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+
+const CUSTOMER_TOKEN_COOKIE_NAME = 'swambasic_customer_token';
+
+export async function POST(request: Request) {
+    try {
+        const cookieStore = cookies();
+        
+        // Delete the cookie by setting its maxAge to 0
+        cookieStore.set(CUSTOMER_TOKEN_COOKIE_NAME, '', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
+            sameSite: 'strict',
+            maxAge: 0, // This effectively deletes the cookie
+        });
+
+        return NextResponse.json({ success: true, message: 'Logged out successfully.' }, { status: 200 });
+
+    } catch (error) {
+        console.error('Logout API error:', error);
+        return NextResponse.json({ error: 'An unexpected error occurred during logout.' }, { status: 500 });
+    }
+}
+
+### .\src\app\api\auth\register\route.ts ###
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+// We are now importing the loginCustomer function only
+import { loginCustomer } from '@/lib/shopify';
+
+const CUSTOMER_TOKEN_COOKIE_NAME = 'swambasic_customer_token';
+
+export async function POST(request: Request) {
+    try {
+        const { firstName, lastName, email, password } = await request.json();
+
+        if (!firstName || !lastName || !email || !password) {
+            return NextResponse.json({ error: 'All fields are required.' }, { status: 400 });
+        }
+
+        const adminApiToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+        const storeDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+        
+        // THE FIX: We are now using the Admin API, which allows us to create a verified customer.
+        const adminApiUrl = `https://${storeDomain}/admin/api/2024-07/customers.json`;
+
+        const customerData = {
+            customer: {
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                password: password,
+                password_confirmation: password,
+                // This is the most important part: we are telling Shopify the user is already verified.
+                verified_email: true, 
+            }
+        };
+
+        // 1. Create the customer using the powerful Admin API
+        const createResponse = await fetch(adminApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': adminApiToken!,
+            },
+            body: JSON.stringify(customerData),
+        });
+
+        const createData = await createResponse.json();
+
+        // If Shopify returns an error (like a duplicate email)
+        if (!createResponse.ok) {
+            // The error from Shopify is usually in createData.errors
+            const errorMessage = createData.errors ? Object.values(createData.errors).flat().join(', ') : 'Failed to create account.';
+            return NextResponse.json({ error: errorMessage }, { status: 400 });
+        }
+
+        // 2. If creation is successful, automatically log them in to get an access token.
+        const loginResult = await loginCustomer({ email, password });
+
+        if (loginResult.customerAccessToken) {
+            const { accessToken, expiresAt } = loginResult.customerAccessToken;
+            const cookieStore = cookies();
+            
+            cookieStore.set(CUSTOMER_TOKEN_COOKIE_NAME, accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                path: '/',
+                sameSite: 'strict',
+                expires: new Date(expiresAt),
+            });
+            
+            return NextResponse.json({ success: true }, { status: 201 }); // 201 Created
+        }
+
+        // Fallback error if login after registration fails
+        return NextResponse.json({ error: 'Account created, but failed to log in.' }, { status: 500 });
+
+    } catch (error) {
+        console.error('Register API error:', error);
+        return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
+    }
 }
 
 ### .\src\app\api\waitlist\route.ts ###
@@ -766,6 +1069,19 @@ body {
     background-position: -200% 0;
   }
 }
+/* ADD THIS CODE AT THE END OF THE FILE */
+
+@keyframes liquid-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
 
 ### .\src\app\layout.tsx ###
 
@@ -775,6 +1091,7 @@ import { fontPoppins, fontUnbounded, fontGenoa } from './fonts';
 import { BackgroundMusicPlayer } from '@/components/core/BackgroundMusicPlayer';
 import { GlobalSoundEffects } from '@/components/core/GlobalSoundEffects';
 import { AppHeightProvider } from '@/components/core/AppHeightProvider'; // <-- IMPORT THE NEW PROVIDER
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata = {
   title: 'SWAMBASIC - Coming Soon',
@@ -794,6 +1111,7 @@ export default function RootLayout({
         'dark'
       ].join(' ')}>
       <body>
+        <Analytics/>
         {/* WRAP everything in the AppHeightProvider */}
         <AppHeightProvider>
             <GlobalSoundEffects />
@@ -1708,6 +2026,69 @@ export const InteractiveLiquidBackground = () => {
 };
 
 
+### .\src\components\core\LiquidGradient.tsx ###
+
+"use client";
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
+import * as THREE from 'three';
+import { shaderMaterial } from '@react-three/drei';
+import { extend } from '@react-three/fiber';
+
+const LiquidShaderMaterial = shaderMaterial(
+  { u_time: 0 },
+  ` varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  ` varying vec2 vUv;
+    uniform float u_time;
+    float random(vec2 p) { return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453); }
+    float noise(vec2 p) {
+        vec2 i = floor(p); vec2 f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(random(i), random(i + vec2(1.0, 0.0)), u.x),
+                   mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
+    }
+    float fbm(vec2 p) {
+        float value = 0.0; float amplitude = 0.5;
+        for (int i = 0; i < 2; i++) { value += amplitude * noise(p); p *= 2.0; amplitude *= 0.5; }
+        return value;
+    }
+    void main() {
+        vec2 p = vUv * 5.0;
+        float time_offset = u_time * 0.1;
+        vec2 q = vec2(fbm(p + time_offset), fbm(p + time_offset + 1.0));
+        float liquid = fbm(p + q);
+        vec3 color = vec3(smoothstep(0.4, 0.6, liquid)) * 0.1; // Soft, dark light effect
+        gl_FragColor = vec4(color, 1.0);
+    }`
+);
+extend({ LiquidShaderMaterial });
+
+function Scene() {
+    const materialRef = useRef<any>();
+    useFrame((state, delta) => {
+        if (materialRef.current) {
+            materialRef.current.uniforms.u_time.value += delta * 2;
+        }
+    });
+    return (
+        <mesh scale={2}>
+            <planeGeometry args={[1, 1]} />
+            <liquidShaderMaterial ref={materialRef} />
+        </mesh>
+    );
+}
+
+export const LiquidGradient = () => {
+    return (
+        <div className="absolute inset-0 z-0">
+            <Canvas camera={{position: [0, 0, 1]}}>
+                <Scene/>
+            </Canvas>
+        </div>
+    )
+}
+
 ### .\src\components\modules\CountdownTimer.tsx ###
 
 "use client";
@@ -2120,28 +2501,13 @@ export const WaitlistForm = () => {
 
 "use client";
 
-// Define the structure of an address object
-interface Address {
-  address1: string;
-  address2?: string; // Optional property
-  city: string;
-  province: string;
-  zip: string;
-  country: string;
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ShopifyAddress } from "@/types/shopify";
+import { NewAddressInput } from "@/lib/shopify";
 
-// Placeholder data, to be replaced by Shopify customer addresses
-const placeholderAddress: Address = {
-  address1: '42,',
-  address2: 'Dhanraj Villa',
-  city: 'Jaipur',
-  province: 'Rajasthan',
-  zip: '302020',
-  country: 'India'
-};
-
-// Define the props for our AddressCard component
-const AddressCard = ({ address }: { address: Address }) => (
+// AddressCard component remains the same
+const AddressCard = ({ address }: { address: ShopifyAddress }) => (
   <div className="p-6 border border-white/10 rounded-lg">
     <p className="font-sans">
       {address.address1}<br />
@@ -2156,18 +2522,99 @@ const AddressCard = ({ address }: { address: Address }) => (
   </div>
 );
 
-const Addresses = () => {
+interface AddressFormProps {
+    onCancel: () => void;
+    onFormSubmit: (addressData: NewAddressInput) => void;
+}
+
+const AddressForm = ({ onCancel, onFormSubmit }: AddressFormProps) => {
+    const [address1, setAddress1] = useState('');
+    const [address2, setAddress2] = useState('');
+    const [city, setCity] = useState('');
+    const [province, setProvince] = useState('');
+    const [country, setCountry] = useState('');
+    const [zip, setZip] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onFormSubmit({ address1, address2, city, province, country, zip });
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4 p-6 border border-white/10 rounded-lg">
+            <input type="text" placeholder="Address 1" value={address1} onChange={e => setAddress1(e.target.value)} required className="w-full bg-white/5 p-2 rounded-md font-sans" />
+            <input type="text" placeholder="Address 2 (Optional)" value={address2} onChange={e => setAddress2(e.target.value)} className="w-full bg-white/5 p-2 rounded-md font-sans" />
+            <div className="grid grid-cols-2 gap-4">
+                <input type="text" placeholder="City" value={city} onChange={e => setCity(e.target.value)} required className="w-full bg-white/5 p-2 rounded-md font-sans" />
+                <input type="text" placeholder="State / Province" value={province} onChange={e => setProvince(e.target.value)} required className="w-full bg-white/5 p-2 rounded-md font-sans" />
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <input type="text" placeholder="ZIP / Postal Code" value={zip} onChange={e => setZip(e.target.value)} required className="w-full bg-white/5 p-2 rounded-md font-sans" />
+                <input type="text" placeholder="Country" value={country} onChange={e => setCountry(e.target.value)} required className="w-full bg-white/5 p-2 rounded-md font-sans" />
+            </div>
+            <div className="flex gap-4 mt-4">
+                <button type="submit" className="px-6 py-2 bg-white text-black text-xs font-sans uppercase tracking-wider">Save Address</button>
+                <button type="button" onClick={onCancel} className="px-6 py-2 border border-white/50 text-xs font-sans uppercase tracking-wider">Cancel</button>
+            </div>
+        </form>
+    );
+}
+
+interface AddressesProps {
+  addresses: ShopifyAddress[];
+}
+
+const Addresses = ({ addresses }: AddressesProps) => {
+  const router = useRouter();
+  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleAddNewAddress = async (addressData: NewAddressInput) => {
+    setError('');
+    const response = await fetch('/api/account/addAddress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addressData),
+    });
+
+    if (response.ok) {
+        setIsAdding(false);
+        router.refresh();
+    } else {
+        const result = await response.json();
+        setError(result.error || 'Failed to add address.');
+    }
+  };
+
   return (
     <div className="max-w-lg space-y-8">
         <div className="flex justify-between items-center">
             <h2 className="font-display text-3xl font-bold">Your Addresses</h2>
-            <button className="px-6 py-2 border border-white/50 text-xs font-sans uppercase tracking-wider hover:bg-white hover:text-black transition-colors">
-                Add New
-            </button>
+            {!isAdding && (
+                <button 
+                    onClick={() => setIsAdding(true)} 
+                    className="px-6 py-2 border border-white/50 text-xs font-sans uppercase tracking-wider hover:bg-white hover:text-black transition-colors"
+                >
+                    Add New
+                </button>
+            )}
         </div>
+        
+        {error && <p className="font-sans text-red-400">{error}</p>}
+
+        {isAdding && (
+            <AddressForm 
+                onCancel={() => setIsAdding(false)} 
+                onFormSubmit={handleAddNewAddress} 
+            />
+        )}
+        
         <div className="space-y-4">
-            <AddressCard address={placeholderAddress} />
-            {/* We will map over multiple addresses here later */}
+            {addresses.length > 0 ? (
+              addresses.map(address => <AddressCard key={address.id} address={address} />)
+            ) : (
+              !isAdding && <p className="font-sans text-white/50">You have no saved addresses.</p>
+            )}
         </div>
     </div>
   );
@@ -2175,46 +2622,176 @@ const Addresses = () => {
 
 export default Addresses;
 
+### .\src\components\modules\account\LoginRegister.tsx ###
+
+"use client";
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+
+// This is the same reusable input component from before
+const FormInput = ({ label, type, id, value, onChange }: { label: string; type: string; id: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }) => (
+  <div>
+    <label htmlFor={id} className="font-sans text-xs uppercase tracking-wider text-white/50">
+      {label}
+    </label>
+    <input
+      type={type}
+      id={id}
+      name={id}
+      value={value}
+      onChange={onChange}
+      required
+      autoComplete={type === 'password' ? (id === 'password' ? 'current-password' : 'new-password') : 'email'}
+      className="mt-2 w-full px-4 py-3 bg-white/5 border border-white/20 rounded-md focus:outline-none focus:border-white/50 transition-colors font-sans"
+    />
+  </div>
+);
+
+const LoginRegister = () => {
+  const [isLoginView, setIsLoginView] = useState(true);
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(null); // Clear error on new input
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    const endpoint = isLoginView ? '/api/auth/login' : '/api/auth/register';
+    
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Something went wrong');
+      }
+
+      if (isLoginView) {
+        // On successful login, redirect to the main account page
+        router.push('/account');
+      } else {
+        // On successful registration, switch to the login view with a success message
+        setIsLoginView(true);
+        setError("Account created successfully. Please sign in.");
+      }
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto">
+      <h1 className="font-display text-4xl md:text-5xl font-bold mb-8 text-center">
+        {isLoginView ? 'Sign In' : 'Create Account'}
+      </h1>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <motion.div
+          key={isLoginView ? 'login' : 'register'}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-6"
+        >
+          {!isLoginView && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormInput label="First Name" type="text" id="firstName" value={formData.firstName} onChange={handleInputChange} />
+              <FormInput label="Last Name" type="text" id="lastName" value={formData.lastName} onChange={handleInputChange} />
+            </div>
+          )}
+          <FormInput label="Email Address" type="email" id="email" value={formData.email} onChange={handleInputChange} />
+          <FormInput label="Password" type="password" id="password" value={formData.password} onChange={handleInputChange} />
+        </motion.div>
+
+        {error && (
+            <p className={`text-sm text-center ${error.includes('successfully') ? 'text-green-400' : 'text-red-400'}`}>{error}</p>
+        )}
+
+        <div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-4 px-8 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest disabled:opacity-50 transition-opacity"
+          >
+            {isLoading ? 'Processing...' : (isLoginView ? 'Sign In' : 'Create Account')}
+          </button>
+        </div>
+      </form>
+
+      <div className="mt-8 text-center">
+        <button onClick={() => { setIsLoginView(!isLoginView); setError(null); }} className="font-sans text-sm text-white/50 hover:text-white transition-colors">
+          {isLoginView ? 'Need an account? Create one.' : 'Already have an account? Sign in.'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default LoginRegister;
+
 ### .\src\components\modules\account\OrderHistory.tsx ###
 
 "use client";
 
-// Define the structure of our order data for TypeScript
-interface Order {
-  id: string;
-  date: string;
-  status: 'Fulfilled' | 'Unfulfilled';
-  total: string;
+// We import the real ShopifyOrder type
+import { ShopifyOrder } from "@/types/shopify";
+// THE FIX: Corrected the typo in the import statement.
+import { format } from 'date-fns';
+
+// Define the structure of the props we expect
+interface OrderHistoryProps {
+  orders: ShopifyOrder[];
 }
 
-// Using placeholder data until we connect to Shopify
-const placeholderOrders: Order[] = [
-  { id: '#SB2025-004', date: 'July 15, 2025', status: 'Fulfilled', total: '370.00' },
-  { id: '#SB2025-003', date: 'July 12, 2025', status: 'Fulfilled', total: '120.00' },
-  { id: '#SB2025-002', date: 'July 10, 2025', status: 'Unfulfilled', total: '420.00' },
-  { id: '#SB2025-001', date: 'July 05, 2025', status: 'Fulfilled', total: '80.00' },
-];
-
-// Define the props for our OrderCard component
-const OrderCard = ({ order }: { order: Order }) => (
+const OrderCard = ({ order }: { order: ShopifyOrder }) => (
   <div className="p-6 border border-white/10 rounded-lg flex justify-between items-center transition-colors hover:bg-white/5">
     <div className="flex flex-col">
-      <span className="font-display font-bold text-lg">{order.id}</span>
-      <span className="font-sans text-xs text-white/50 mt-1">{order.date}</span>
+      <span className="font-display font-bold text-lg">#{order.orderNumber}</span>
+      <span className="font-sans text-xs text-white/50 mt-1">
+        {format(new Date(order.processedAt), 'MMMM dd, yyyy')}
+      </span>
     </div>
     <div className="text-right">
-      <span className={`font-sans text-xs uppercase tracking-widest px-2 py-1 rounded ${order.status === 'Fulfilled' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
-        {order.status}
+      <span className={`font-sans text-xs uppercase tracking-widest px-2 py-1 rounded ${
+        order.financialStatus === 'PAID' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
+      }`}>
+        {order.financialStatus}
       </span>
-      <p className="font-mono text-lg mt-2">${order.total}</p>
+      <p className="font-mono text-lg mt-2">${parseFloat(order.totalPriceV2.amount).toFixed(2)}</p>
     </div>
   </div>
 );
 
-const OrderHistory = () => {
+const OrderHistory = ({ orders }: OrderHistoryProps) => {
+  if (orders.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <p className="font-sans text-white/50">You haven't placed any orders yet.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {placeholderOrders.map(order => (
+      {orders.map(order => (
         <OrderCard key={order.id} order={order} />
       ))}
     </div>
@@ -2226,60 +2803,172 @@ export default OrderHistory;
 ### .\src\components\modules\account\ProfileDetails.tsx ###
 
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ShopifyCustomer } from '@/types/shopify';
 
-// Define the structure of the props for our input component
 interface FormInputProps {
   label: string;
   type: string;
   id: string;
-  value: string;
+  value: string; // Changed to 'value' for controlled components
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-// Reusable styled input component with correctly typed props
-const FormInput = ({ label, type, id, value }: FormInputProps) => (
+const FormInput = ({ label, type, id, value, onChange }: FormInputProps) => (
   <div>
-    <label htmlFor={id} className="font-sans text-xs uppercase tracking-wider text-white/50">
-      {label}
-    </label>
+    <label htmlFor={id} className="font-sans text-xs uppercase tracking-wider text-white/50">{label}</label>
     <input
       type={type}
       id={id}
-      defaultValue={value}
+      value={value}
+      onChange={onChange}
       className="mt-2 w-full px-4 py-3 bg-white/5 border border-white/20 rounded-md focus:outline-none focus:border-white/50 transition-colors font-sans"
     />
   </div>
 );
 
-const ProfileDetails = () => {
-  // Placeholder data, to be replaced by Shopify customer data
-  const user = {
-    firstName: 'Manan',
-    lastName: 'Kadel',
-    email: 'manankadel@gmail.com'
+interface ProfileDetailsProps {
+  customer: ShopifyCustomer | null;
+}
+
+const ProfileDetails = ({ customer }: ProfileDetailsProps) => {
+  const router = useRouter();
+  const [firstName, setFirstName] = useState(customer?.firstName || '');
+  const [lastName, setLastName] = useState(customer?.lastName || '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+
+    const response = await fetch('/api/account/updateProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName, lastName }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+        setMessage('Profile updated successfully!');
+        // Refresh the page to show the new server-rendered data
+        router.refresh();
+    } else {
+        setMessage(`Error: ${data.error}`);
+    }
+    setIsLoading(false);
   };
 
+  if (!customer) {
+    return <div>Loading profile...</div>;
+  }
+
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="max-w-lg space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-lg space-y-6">
       <h2 className="font-display text-3xl font-bold">Profile Details</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormInput label="First Name" type="text" id="firstName" value={user.firstName} />
-        <FormInput label="Last Name" type="text" id="lastName" value={user.lastName} />
+        <FormInput label="First Name" type="text" id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+        <FormInput label="Last Name" type="text" id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
       </div>
-      <FormInput label="Email Address" type="email" id="email" value={user.email} />
+      <FormInput label="Email Address" type="email" id="email" value={customer.email} onChange={() => {}} />
       <div>
         <button
           type="submit"
-          className="px-8 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest"
+          disabled={isLoading}
+          className="px-8 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest disabled:opacity-50"
         >
-          Save Changes
+          {isLoading ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+      {message && <p className="mt-4 font-sans text-sm">{message}</p>}
     </form>
   );
 };
 
 export default ProfileDetails;
+
+### .\src\components\modules\auth\AuthForm.tsx ###
+
+"use client";
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+// Import the NEW Liquid Gradient component
+import { LiquidGradient } from '@/components/core/LiquidGradient';
+
+// THE FIX: Corrected the typo from FormInput_Props to FormInputProps
+interface FormInputProps { id: string; label: string; type?: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; required?: boolean; disabled?: boolean; }
+const FormInput = ({ id, label, type = "text", value, onChange, required = true, disabled = false }: FormInputProps) => (<div className="relative"><label htmlFor={id} className="font-sans text-xs uppercase tracking-wider text-white/60">{label}</label><input type={type} id={id} value={value} onChange={onChange} required={required} disabled={disabled} className="w-full mt-2 px-1 py-2 bg-transparent text-white border-b-2 border-white/20 focus:outline-none focus:border-white transition-colors font-sans disabled:opacity-50" /></div>);
+
+// Main AuthForm Component - FINAL VERSION
+export const AuthForm = () => {
+    const router = useRouter();
+    const [formType, setFormType] = useState<'login' | 'register'>('login');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const [loginEmail, setLoginEmail] = useState(''); const [loginPassword, setLoginPassword] = useState('');
+    const [regFirstName, setRegFirstName] = useState(''); const [regLastName, setRegLastName] = useState('');
+    const [regEmail, setRegEmail] = useState(''); const [regPassword, setRegPassword] = useState('');
+
+    const handleApiSubmit = async (endpoint: string, body: Record<string, unknown>) => { setIsLoading(true); setError(''); try { const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Something went wrong'); router.push('/account'); router.refresh(); } catch (err: any) { setError(err.message); } finally { setIsLoading(false); } };
+    const handleLoginSubmit = (e: React.FormEvent) => { e.preventDefault(); handleApiSubmit('/api/auth/login', { email: loginEmail, password: loginPassword }); };
+    const handleRegisterSubmit = (e: React.FormEvent) => { e.preventDefault(); handleApiSubmit('/api/auth/register', { firstName: regFirstName, lastName: regLastName, email: regEmail, password: regPassword }); };
+    const toggleFormType = (type: 'login' | 'register') => { if(!isLoading) { setFormType(type); setError(''); } };
+
+    return (
+        <div className="w-full max-w-md mx-auto flex flex-col items-center">
+            {/* 3D Perspective Container */}
+            <div className="w-full h-[520px]" style={{ perspective: '1200px' }}>
+                <motion.div
+                    className="relative w-full h-full"
+                    animate={{ rotateY: formType === 'login' ? 0 : 180 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                    // THE FIX: Corrected the typo from 'preserve-d' to 'preserve-3d'
+                    style={{ transformStyle: 'preserve-3d' }}
+                >
+                    {/* FRONT OF THE CARD (LOGIN) */}
+                    <div className="absolute w-full h-full rounded-2xl border border-white/10 bg-black/30 backdrop-blur-md shadow-2xl shadow-black/40 overflow-hidden" style={{ backfaceVisibility: 'hidden' }}>
+                        <LiquidGradient />
+                        <form onSubmit={handleLoginSubmit} className="relative z-10 w-full h-full p-10 flex flex-col justify-center space-y-10">
+                            <h2 className="font-display text-4xl font-bold text-center">Sign In</h2>
+                            {/* THE FIX: Added correct event types to all onChange handlers */}
+                            <FormInput id="login-email" label="Email" type="email" value={loginEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginEmail(e.target.value)} disabled={isLoading} />
+                            <FormInput id="login-password" label="Password" type="password" value={loginPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginPassword(e.target.value)} disabled={isLoading} />
+                            <button type="submit" disabled={isLoading} className="w-full mt-4 px-8 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest hover:bg-white/80 transition-colors disabled:opacity-50">{isLoading && formType === 'login' ? '...' : 'Sign In'}</button>
+                            <p className="text-center text-xs text-white/50">Don't have an account? <button type='button' onClick={() => toggleFormType('register')} className="font-bold hover:text-white transition">Create one</button>.</p>
+                        </form>
+                    </div>
+
+                    {/* BACK OF THE CARD (REGISTER) */}
+                    <div className="absolute w-full h-full rounded-2xl border border-white/10 bg-black/30 backdrop-blur-md shadow-2xl shadow-black/40 overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                        <LiquidGradient />
+                        <form onSubmit={handleRegisterSubmit} className="relative z-10 w-full h-full p-10 flex flex-col justify-center space-y-6">
+                            <h2 className="font-display text-4xl font-bold text-center">Create Account</h2>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-8">
+                                <FormInput id="reg-firstName" label="First Name" value={regFirstName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegFirstName(e.target.value)} disabled={isLoading} />
+                                <FormInput id="reg-lastName" label="Last Name" value={regLastName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegLastName(e.target.value)} disabled={isLoading} />
+                            </div>
+                            <FormInput id="reg-email" label="Email" type="email" value={regEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegEmail(e.target.value)} disabled={isLoading} />
+                            <FormInput id="reg-password" label="Password" type="password" value={regPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegPassword(e.target.value)} disabled={isLoading} />
+                            <button type="submit" disabled={isLoading} className="w-full px-8 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest hover:bg-white/80 transition-colors disabled:opacity-50">{isLoading && formType === 'register' ? '...' : 'Create Account'}</button>
+                            <p className="text-center text-xs text-white/50">Already have an account? <button type='button' onClick={() => toggleFormType('login')} className="font-bold hover:text-white transition">Sign in</button>.</p>
+                        </form>
+                    </div>
+                </motion.div>
+            </div>
+             
+             {/* Error Message Display */}
+             <div className="h-6 mt-6 text-center">
+                {error && <p className="text-sm text-red-400" role="alert">{error}</p>}
+            </div>
+        </div>
+    );
+};
 
 ### .\src\components\modules\glitch\GlitchCanvas.tsx ###
 
@@ -2609,9 +3298,25 @@ export const useSound = (soundPath: string, volume: number = 0.5) => {
   return play;
 };
 
+### .\src\lib\constants.ts ###
+
+// src/lib/constants.ts
+
+export const SHOPIFY_CUSTOMER_ACCESS_TOKEN_COOKIE = "shopify_customer_access_token";
+
 ### .\src\lib\shopify.ts ###
 
-import { ShopifyProductsResponseBody, ShopifyProduct } from '@/types/shopify';
+import { 
+  ShopifyProductsResponseBody, 
+  ShopifyProduct,
+  ShopifyCustomerCreateResponseBody, 
+  ShopifyCustomerLoginResponseBody,
+  CustomerCreatePayload,
+  CustomerLoginPayload,
+  ShopifyCustomerDataResponseBody,
+  ShopifyCustomer,
+  ShopifyAddressCreateResponseBody
+} from '@/types/shopify';
 
 const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!;
 const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!;
@@ -2628,30 +3333,16 @@ async function shopifyFetch<T>({
 
     const result = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': storefrontAccessToken, },
       body: JSON.stringify({ query, variables }),
+      cache: 'no-store',
     });
 
     const body = await result.json();
-
-    if (body.errors) {
-      throw new Error(body.errors[0].message);
-    }
-
-    return {
-      status: result.status,
-      body,
-    };
+    if (body.errors) { throw new Error(body.errors[0].message); }
+    return { status: result.status, body, };
   } catch (e) {
-    // THE FIX IS HERE.
-    // We now check if 'e' is an instance of Error before accessing e.message.
-    if (e instanceof Error) {
-        throw new Error(`Shopify API call failed: ${e.message}`);
-    }
-    // If it's not a standard Error object, we handle it gracefully.
+    if (e instanceof Error) { throw new Error(`Shopify API call failed: ${e.message}`); }
     throw new Error('An unknown error occurred during the Shopify API call.');
   }
 }
@@ -2690,6 +3381,266 @@ export async function getProducts(count: number): Promise<ShopifyProduct[]> {
   return res.body.data.products.edges.map((edge) => edge.node);
 }
 
+
+// === GraphQL MUTATIONS ===
+
+const customerCreateMutation = `
+  mutation customerCreate($input: CustomerCreateInput!) {
+    customerCreate(input: $input) {
+      customerUserErrors {
+        code
+        field
+        message
+      }
+      customer {
+        id
+        firstName
+        lastName
+        email
+      }
+    }
+  }
+`;
+
+const customerLoginMutation = `
+  mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
+    customerAccessTokenCreate(input: $input) {
+      customerUserErrors {
+        code
+        field
+        message
+      }
+      customerAccessToken {
+        accessToken
+        expiresAt
+      }
+    }
+  }
+`;
+
+// === API FUNCTIONS ===
+
+export async function createCustomer(input: Record<string, unknown>): Promise<CustomerCreatePayload> {
+    const res = await shopifyFetch<ShopifyCustomerCreateResponseBody>({
+        query: customerCreateMutation,
+        variables: { input }
+    });
+    return res.body.data.customerCreate;
+}
+
+export async function loginCustomer(input: Record<string, unknown>): Promise<CustomerLoginPayload> {
+    const res = await shopifyFetch<ShopifyCustomerLoginResponseBody>({
+        query: customerLoginMutation,
+        variables: { input }
+    });
+    return res.body.data.customerAccessTokenCreate;
+}
+
+// === CUSTOMER DATA FETCHING ===
+
+const getCustomerQuery = `
+  query getCustomer($customerAccessToken: String!) {
+    customer(customerAccessToken: $customerAccessToken) {
+      id
+      firstName
+      lastName
+      email
+      addresses(first: 10) {
+        edges {
+          node {
+            id
+            address1
+            address2
+            city
+            province
+            zip
+            country
+          }
+        }
+      }
+      orders(first: 20, sortKey: PROCESSED_AT, reverse: true) {
+        edges {
+          node {
+            id
+            orderNumber
+            processedAt
+            financialStatus
+            totalPriceV2 {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export async function getCustomer(customerAccessToken: string): Promise<ShopifyCustomer | null> {
+    const res = await shopifyFetch<ShopifyCustomerDataResponseBody>({
+        query: getCustomerQuery,
+        variables: { customerAccessToken }
+    });
+    return res.body.data.customer;
+}
+
+
+// --- THE FIX IS HERE ---
+const customerUpdateMutation = `
+  mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
+    customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
+      customer {
+        id
+        firstName
+        lastName
+      }
+      customerUserErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+`;
+
+// Define a type for the response body of the update mutation
+interface ShopifyCustomerUpdateResponseBody {
+    data: {
+        customerUpdate: {
+            customer: {
+                id: string;
+                firstName: string;
+                lastName: string;
+            };
+            customerUserErrors: any[]; // You can define a proper type for this if needed
+        }
+    }
+}
+
+// Use the correct type in the function signature
+export async function updateCustomer(token: string, customerData: { firstName: string, lastName: string }): Promise<any> {
+    const res = await shopifyFetch<ShopifyCustomerUpdateResponseBody>({
+        query: customerUpdateMutation,
+        variables: {
+            customerAccessToken: token,
+            customer: customerData
+        }
+    });
+    return res.body.data.customerUpdate;
+}
+const customerAddressCreateMutation = `
+  mutation customerAddressCreate($customerAccessToken: String!, $address: MailingAddressInput!) {
+    customerAddressCreate(customerAccessToken: $customerAccessToken, address: $address) {
+      customerAddress {
+        id
+      }
+      customerUserErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+`;
+
+// Define a type for the address data we will send
+interface NewAddressInput {
+    address1: string;
+    address2?: string;
+    city: string;
+    province: string;
+    country: string;
+    zip: string;
+}
+
+interface ShopifyCustomerAddressCreateResponseBody {
+    data: {
+        customerAddressCreate: {
+            customerAddress: {
+                id: string;
+            };
+            customerUserErrors: any[];
+        };
+    };
+}
+
+export async function createCustomerAddress(token: string, address: NewAddressInput): Promise<any> {
+    const res = await shopifyFetch<ShopifyCustomerAddressCreateResponseBody>({
+        query: customerAddressCreateMutation,
+        variables: {
+            customerAccessToken: token,
+            address: address
+        }
+    });
+    return res.body.data.customerAddressCreate;
+}
+const customerAddressCreateMutation = `
+  mutation customerAddressCreate($customerAccessToken: String!, $address: MailingAddressInput!) {
+    customerAddressCreate(customerAccessToken: $customerAccessToken, address: $address) {
+      customerAddress {
+        id
+      }
+      customerUserErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+`;
+
+// Define a type for the address data we will send
+export interface NewAddressInput {
+    address1: string;
+    address2?: string;
+    city: string;
+    province: string;
+    country: string;
+    zip: string;
+}
+
+export async function createCustomerAddress(token: string, address: NewAddressInput): Promise<any> {
+    const res = await shopifyFetch<ShopifyAddressCreateResponseBody>({
+        query: customerAddressCreateMutation,
+        variables: {
+            customerAccessToken: token,
+            address: address
+        }
+    });
+    return res.body.data.customerAddressCreate;
+}
+
+
+### .\src\middleware.ts ###
+
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+const CUSTOMER_TOKEN_COOKIE_NAME = 'swambasic_customer_token';
+
+export function middleware(request: NextRequest) {
+  // Yeh line ab chalegi aur aapko terminal mein dikhegi.
+  console.log('✅ Middleware is running for path:', request.nextUrl.pathname);
+
+  const customerToken = request.cookies.get(CUSTOMER_TOKEN_COOKIE_NAME);
+
+  // Agar token nahi hai, toh login page par redirect kar do.
+  if (!customerToken) {
+    console.log('🚫 No token found, redirecting to /login');
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // Agar token hai, toh user ko page dekhne do.
+  return NextResponse.next();
+}
+
+// THE FINAL, CORRECT MATCHER
+// This will correctly run the middleware on ONLY the /account/* paths.
+export const config = {
+  // Using a regular expression to match all paths starting with /account
+  matcher: '/account/:path*',
+};
+
 ### .\src\types\global.d.ts ###
 
 import { Object3DNode } from '@react-three/fiber';
@@ -2698,7 +3649,12 @@ import { ShaderMaterial } from 'three';
 declare module '@react-three/fiber' {
   interface ThreeElements {
     liquidGradientMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
-     glitchTrailMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+    loginLiquidMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+    // ADD THE LINE BELOW
+    liquidShaderMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+
+    nebulaMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+    glitchTrailMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
   }
 }
 
@@ -2737,6 +3693,93 @@ export interface ShopifyProductsResponseBody {
       }[];
     };
   };
+}
+
+export interface CustomerUserError {
+  code: string;
+  field: string[];
+  message: string;
+}
+
+interface CustomerAccessToken {
+  accessToken: string;
+  expiresAt: string;
+}
+
+export interface CustomerCreatePayload {
+  customerUserErrors: CustomerUserError[];
+  customer?: {
+    id: string;
+  };
+}
+
+export interface CustomerLoginPayload {
+    customerUserErrors: CustomerUserError[];
+    customerAccessToken?: CustomerAccessToken;
+}
+
+// For the complete API response body
+export interface ShopifyCustomerCreateResponseBody {
+    data: {
+        customerCreate: CustomerCreatePayload;
+    }
+}
+
+export interface ShopifyCustomerLoginResponseBody {
+    data: {
+        customerAccessTokenCreate: CustomerLoginPayload;
+    }
+}
+
+// --- THE FIX IS HERE: ADDING ALL THE MISSING TYPES FOR CUSTOMER DATA ---
+
+export interface ShopifyOrder {
+    id: string;
+    orderNumber: number;
+    processedAt: string;
+    financialStatus: string;
+    totalPriceV2: {
+        amount: string;
+        currencyCode: string;
+    };
+}
+
+export interface ShopifyAddress {
+    id: string;
+    address1: string;
+    address2: string | null; // Can be null
+    city: string;
+    province: string;
+    zip: string;
+    country: string;
+}
+
+export interface ShopifyCustomer {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    addresses: {
+        edges: { node: ShopifyAddress }[];
+    };
+    orders: {
+        edges: { node: ShopifyOrder }[];
+    };
+}
+
+export interface ShopifyCustomerDataResponseBody {
+    data: {
+        customer: ShopifyCustomer | null;
+    }
+}
+// Add this to the end of src/types/shopify.d.ts
+export interface ShopifyAddressCreateResponseBody {
+    data: {
+        customerAddressCreate: {
+            customerAddress: { id: string } | null;
+            customerUserErrors: any[];
+        }
+    }
 }
 
 ### .\tailwind.config.ts ###
