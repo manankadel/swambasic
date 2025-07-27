@@ -2,7 +2,8 @@
 
 "use client";
 
-import React, { useMemo, useRef } from "react";
+// ADDED: useState and useEffect for the gyroscope
+import React, { useMemo, useRef, useState, useEffect } from "react"; 
 import { Canvas, useFrame, extend } from "@react-three/fiber";
 import * as THREE from "three";
 import { shaderMaterial } from "@react-three/drei";
@@ -15,16 +16,14 @@ const PARTICLE_CONTROLS = {
     size: 0.04,
     glowPercentage: 0.8,
     blinkPercentage: 0.2,
-
-    // --- NEW CONTROLS ---
-    // 1 for outwards (coming towards you), -1 for inwards (moving away)
-    direction: 1, 
-    // How fast the particles travel
-    speed: 0.2
+    direction: -1, 
+    speed: 0.1,
+    // ONLY ADDITION: A control for gyroscope sensitivity
+    gyroIntensity: 0.5,
 };
 // ===================================================================
 
-// A custom shader material to create circular, blinking particles
+// Your custom shader material. THIS IS UNCHANGED.
 const CustomParticleMaterial = shaderMaterial(
   { u_time: 0.0 },
   // Vertex Shader
@@ -48,39 +47,32 @@ const CustomParticleMaterial = shaderMaterial(
     varying float v_blinkSpeed;
 
     void main() {
-      // This creates the circular shape
       float dist = distance(gl_PointCoord, vec2(0.5));
-      if (dist > 0.5) {
-        discard; // Throw away pixels outside the circle
-      }
-
+      if (dist > 0.5) { discard; }
       float alpha = 1.0;
-      if (v_blinkSpeed > 0.0) {
-        alpha = (sin(u_time * v_blinkSpeed) + 1.0) / 2.0; // Blinking logic
-      }
-      
+      if (v_blinkSpeed > 0.0) { alpha = (sin(u_time * v_blinkSpeed) + 1.0) / 2.0; }
       gl_FragColor = vec4(v_color, alpha);
     }`
 );
 extend({ CustomParticleMaterial });
 
-// The particle system
-const Particles = ({ mousePosition }: { mousePosition: { x: number, y: number } }) => {
+// The particle system.
+// ONLY CHANGE: It now accepts `gyroData` as a prop.
+const Particles = ({ mousePosition, gyroData }: { mousePosition: { x: number, y: number }, gyroData: { x: number, y: number } }) => {
   const meshRef = useRef<THREE.Points>(null!);
+  
+  // Your particle generation logic. THIS IS UNCHANGED.
   const particleData = useMemo(() => {
     const positions = new Float32Array(PARTICLE_CONTROLS.quantity * 3);
     const colors = new Float32Array(PARTICLE_CONTROLS.quantity * 3);
     const blinkSpeeds = new Float32Array(PARTICLE_CONTROLS.quantity);
     const distance = 10;
-
     for (let i = 0; i < PARTICLE_CONTROLS.quantity; i++) {
       positions[i * 3 + 0] = (Math.random() - 0.5) * distance;
       positions[i * 3 + 1] = (Math.random() - 0.5) * distance;
       positions[i * 3 + 2] = (Math.random() - 0.5) * distance;
-
       let particleColor = new THREE.Color();
       blinkSpeeds[i] = 0.0;
-
       if (Math.random() < PARTICLE_CONTROLS.blinkPercentage) {
         particleColor.setHSL(0, 0, 1.0);
         blinkSpeeds[i] = Math.random() * 3 + 1;
@@ -92,23 +84,27 @@ const Particles = ({ mousePosition }: { mousePosition: { x: number, y: number } 
       }
       colors.set([particleColor.r, particleColor.g, particleColor.b], i * 3);
     }
-    
     return { positions, colors, blinkSpeeds };
   }, []);
 
   useFrame((state, delta) => {
-    // Mouse reactivity: We gently move the camera for a parallax effect
-    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, mousePosition.x * 0.5, 0.05);
-    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, mousePosition.y * 0.5, 0.05);
+    // --- GYROSCOPE INTEGRATION LOGIC ---
+    // 1. Check if gyroscope is active.
+    const hasGyro = gyroData.x !== 0 || gyroData.y !== 0;
+    
+    // 2. Use gyro data if available, otherwise fall back to mouse data.
+    const targetX = hasGyro ? gyroData.x * PARTICLE_CONTROLS.gyroIntensity : mousePosition.x * 0.5;
+    const targetY = hasGyro ? gyroData.y * PARTICLE_CONTROLS.gyroIntensity : mousePosition.y * 0.5;
 
-    // --- INFINITE LOOP ANIMATION ---
+    // 3. Your original camera movement logic, now driven by either gyro or mouse.
+    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, targetX, 0.05);
+    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, targetY, 0.05);
+    
+    // Your infinite loop animation. THIS IS UNCHANGED.
     if (meshRef.current) {
       const positions = meshRef.current.geometry.attributes.position.array as Float32Array;
       for (let i = 0; i < positions.length; i += 3) {
-        // Move particle along the Z axis
         positions[i + 2] += delta * PARTICLE_CONTROLS.speed * PARTICLE_CONTROLS.direction;
-
-        // If the particle goes too far, reset it to the back with a new X/Y
         if (PARTICLE_CONTROLS.direction === 1 && positions[i + 2] > 5) {
             positions[i + 2] = -5;
             positions[i] = (Math.random() - 0.5) * 10;
@@ -119,15 +115,13 @@ const Particles = ({ mousePosition }: { mousePosition: { x: number, y: number } 
             positions[i + 1] = (Math.random() - 0.5) * 10;
         }
       }
-      // This is crucial: it tells Three.js to update the positions on the GPU
       meshRef.current.geometry.attributes.position.needsUpdate = true;
-
-      // Update shader time for blinking
       (meshRef.current.material as THREE.ShaderMaterial).uniforms.u_time.value = state.clock.getElapsedTime();
     }
   });
 
   return (
+    // Your JSX for the particles. THIS IS UNCHANGED.
     <points ref={meshRef}>
         <bufferGeometry>
             <bufferAttribute attach="attributes-position" count={particleData.positions.length / 3} array={particleData.positions} itemSize={3} />
@@ -146,12 +140,36 @@ const Particles = ({ mousePosition }: { mousePosition: { x: number, y: number } 
   );
 };
 
-
+// --- GYROSCOPE LOGIC ADDED HERE ---
 export const FloatingParticlesBackground = ({ mousePosition }: { mousePosition: { x: number, y: number } }) => {
+  const [gyroData, setGyroData] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleDeviceOrientation = (event: DeviceOrientationEvent) => {
+      const { beta, gamma } = event;
+      if (beta !== null && gamma !== null) {
+        const x = THREE.MathUtils.clamp(gamma / 90, -1, 1);
+        const y = THREE.MathUtils.clamp(beta / 90, -1, 1);
+        setGyroData({ x, y });
+      }
+    };
+    
+    if (typeof window !== 'undefined' && window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', handleDeviceOrientation);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && window.DeviceOrientationEvent) {
+        window.removeEventListener('deviceorientation', handleDeviceOrientation);
+      }
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-0">
       <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-        <Particles mousePosition={mousePosition} />
+        {/* We now pass both mouse and gyro data down */}
+        <Particles mousePosition={mousePosition} gyroData={gyroData} />
       </Canvas>
     </div>
   );
