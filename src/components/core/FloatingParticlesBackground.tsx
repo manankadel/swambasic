@@ -19,7 +19,7 @@ const PARTICLE_CONTROLS = {
     direction: -1, 
     speed: 0.1,
     // ONLY ADDITION: A control for gyroscope sensitivity
-    gyroIntensity: 0.3,
+    gyroIntensity: 1,
 };
 // ===================================================================
 
