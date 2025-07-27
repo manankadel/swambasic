@@ -1,9 +1,8 @@
 // src/components/core/MotionPermissionPrompt.tsx
 "use client";
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // <-- Import Framer Motion
+import { motion, AnimatePresence } from 'framer-motion';
 
-// MotionIcon remains the same
 const MotionIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M10 3.2a9 9 0 1 0 10.8 10.8"/>
@@ -13,45 +12,46 @@ const MotionIcon = () => (
 );
 
 export const MotionPermissionPrompt = () => {
+    // This state tracks if the entire prompt (button and hint) should be visible.
     const [shouldShowPrompt, setShouldShowPrompt] = useState(false);
-    
-    // --- NEW: State to control the visibility of the text hint ---
     const [showHint, setShowHint] = useState(false);
 
+    // THE FIX: The logic is now much simpler and more reliable.
     useEffect(() => {
+        // We ONLY check if the permission function EXISTS. We do not call it.
+        // This function only exists on iOS 13+ and some Android devices.
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-            // Check permission state without prompting
-            (DeviceOrientationEvent as any).requestPermission()
-                .then((state: string) => {
-                    if (state === 'prompt') {
-                        setShouldShowPrompt(true);
-                        // --- NEW: If prompt is needed, show the hint ---
-                        setShowHint(true); 
-                        // Set a timer to hide the hint after a few seconds
-                        setTimeout(() => {
-                            setShowHint(false);
-                        }, 4000); // 4 seconds
-                    }
-                }).catch(() => {/* Ignore */});
+            // If it exists, it's a device that might need permission. So we show the prompt.
+            setShouldShowPrompt(true);
+            setShowHint(true);
+            // Set a timer to hide the pop-up hint after 4 seconds
+            const timer = setTimeout(() => {
+                setShowHint(false);
+            }, 4000);
+            return () => clearTimeout(timer); // Clean up the timer
         }
+        // If the function doesn't exist, we do nothing, and the prompt remains hidden.
     }, []);
 
+    // This function is called ONLY when the user physically taps the button.
     const requestPermission = () => {
         (DeviceOrientationEvent as any).requestPermission()
             .then((permissionState: string) => {
                 if (permissionState === 'granted') {
-                    setShouldShowPrompt(false); // Hide everything on success
+                    // If they grant permission, hide the entire prompt.
+                    setShouldShowPrompt(false);
                 }
+                // If they deny, the button remains visible for them to try again.
             })
             .catch(console.error);
     };
 
+    // If the browser doesn't need a prompt, this will be false and we render nothing.
     if (!shouldShowPrompt) {
         return null;
     }
 
     return (
-        // --- NEW: A container for both the button and the hint ---
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3">
             <AnimatePresence>
                 {showHint && (
