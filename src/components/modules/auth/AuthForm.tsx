@@ -46,7 +46,7 @@ export const AuthForm = () => {
 
                     {/* BACK OF THE CARD (REGISTER) */}
                     <div className="absolute w-full h-full rounded-2xl border border-white/15 bg-white/5 backdrop-blur-xl shadow-2xl shadow-black/40" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                        <form onSubmit={handleRegisterSubmit} className="relative z-10 w-full h-full p-10 flex flex-col justify-center space-y-6">
+                        <form onSubmit={handleRegisterSubmit} className="relative z-10 w-full h-full p-10 flex flex-col justify-center space-y-3">
                             <h2 className="font-display text-2xl md:text-4xl font-bold text-center">Join Us</h2>
                             <div className="grid grid-cols-2 gap-x-6">
                                 <FormInput id="reg-firstName" label="First Name" value={regFirstName} onChange={(e) => setRegFirstName(e.target.value)} disabled={isLoading} />

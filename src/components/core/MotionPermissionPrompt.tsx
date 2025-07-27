@@ -1,7 +1,9 @@
 // src/components/core/MotionPermissionPrompt.tsx
 "use client";
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // <-- Import Framer Motion
 
+// MotionIcon remains the same
 const MotionIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M10 3.2a9 9 0 1 0 10.8 10.8"/>
@@ -11,41 +13,69 @@ const MotionIcon = () => (
 );
 
 export const MotionPermissionPrompt = () => {
-    // This state tracks if the button should be visible at all.
     const [shouldShowPrompt, setShouldShowPrompt] = useState(false);
+    
+    // --- NEW: State to control the visibility of the text hint ---
+    const [showHint, setShowHint] = useState(false);
 
-    // This effect runs ONCE to see if the browser REQUIRES a permission prompt.
     useEffect(() => {
-        // This function only exists on iOS 13+ devices.
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-            setShouldShowPrompt(true);
+            // Check permission state without prompting
+            (DeviceOrientationEvent as any).requestPermission()
+                .then((state: string) => {
+                    if (state === 'prompt') {
+                        setShouldShowPrompt(true);
+                        // --- NEW: If prompt is needed, show the hint ---
+                        setShowHint(true); 
+                        // Set a timer to hide the hint after a few seconds
+                        setTimeout(() => {
+                            setShowHint(false);
+                        }, 4000); // 4 seconds
+                    }
+                }).catch(() => {/* Ignore */});
         }
     }, []);
 
-    // This function is called ONLY when the user taps the button.
     const requestPermission = () => {
         (DeviceOrientationEvent as any).requestPermission()
             .then((permissionState: string) => {
                 if (permissionState === 'granted') {
-                    // Once permission is granted, we hide the button forever.
-                    setShouldShowPrompt(false);
+                    setShouldShowPrompt(false); // Hide everything on success
                 }
             })
-            .catch(console.error); // If they deny, the button remains.
+            .catch(console.error);
     };
 
-    // If the browser doesn't need a prompt (e.g., Android, Desktop), render nothing.
     if (!shouldShowPrompt) {
         return null;
     }
 
     return (
-        <button
-            onClick={requestPermission}
-            className="fixed bottom-4 left-4 z-50 p-3 bg-white/10 text-white backdrop-blur-md rounded-full animate-pulse transition-all hover:bg-white/20"
-            aria-label="Enable motion controls"
-        >
-            <MotionIcon />
-        </button>
+        // --- NEW: A container for both the button and the hint ---
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3">
+            <AnimatePresence>
+                {showHint && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                        className="bg-white/10 backdrop-blur-md p-2 px-3 rounded-lg"
+                    >
+                        <p className="text-white text-xs font-sans">
+                            Enable motion for an interactive experience.
+                        </p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            
+            <button
+                onClick={requestPermission}
+                className="p-3 bg-white/10 text-white backdrop-blur-md rounded-full animate-pulse transition-all hover:bg-white/20"
+                aria-label="Enable motion controls"
+            >
+                <MotionIcon />
+            </button>
+        </div>
     );
 };
