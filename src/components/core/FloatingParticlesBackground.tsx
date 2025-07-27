@@ -3,53 +3,155 @@
 "use client";
 
 import React, { useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, extend } from "@react-three/fiber";
 import * as THREE from "three";
+import { shaderMaterial } from "@react-three/drei";
 
-const Particles = ({ count = 3000 }) => {
+// ===================================================================
+// ==                          CONTROLS                             ==
+// ===================================================================
+const PARTICLE_CONTROLS = {
+    quantity: 1500,
+    size: 0.04,
+    glowPercentage: 0.8,
+    blinkPercentage: 0.2,
+
+    // --- NEW CONTROLS ---
+    // 1 for outwards (coming towards you), -1 for inwards (moving away)
+    direction: 1, 
+    // How fast the particles travel
+    speed: 0.2
+};
+// ===================================================================
+
+// A custom shader material to create circular, blinking particles
+const CustomParticleMaterial = shaderMaterial(
+  { u_time: 0.0 },
+  // Vertex Shader
+  ` uniform float u_time;
+    attribute vec3 a_color;
+    attribute float a_blinkSpeed;
+    varying vec3 v_color;
+    varying float v_blinkSpeed;
+
+    void main() {
+      v_color = a_color;
+      v_blinkSpeed = a_blinkSpeed;
+      vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+      vec4 viewPosition = viewMatrix * modelPosition;
+      gl_PointSize = ${PARTICLE_CONTROLS.size} * (300.0 / -viewPosition.z);
+      gl_Position = projectionMatrix * viewPosition;
+    }`,
+  // Fragment Shader
+  ` uniform float u_time;
+    varying vec3 v_color;
+    varying float v_blinkSpeed;
+
+    void main() {
+      // This creates the circular shape
+      float dist = distance(gl_PointCoord, vec2(0.5));
+      if (dist > 0.5) {
+        discard; // Throw away pixels outside the circle
+      }
+
+      float alpha = 1.0;
+      if (v_blinkSpeed > 0.0) {
+        alpha = (sin(u_time * v_blinkSpeed) + 1.0) / 2.0; // Blinking logic
+      }
+      
+      gl_FragColor = vec4(v_color, alpha);
+    }`
+);
+extend({ CustomParticleMaterial });
+
+// The particle system
+const Particles = ({ mousePosition }: { mousePosition: { x: number, y: number } }) => {
   const meshRef = useRef<THREE.Points>(null!);
+  const particleData = useMemo(() => {
+    const positions = new Float32Array(PARTICLE_CONTROLS.quantity * 3);
+    const colors = new Float32Array(PARTICLE_CONTROLS.quantity * 3);
+    const blinkSpeeds = new Float32Array(PARTICLE_CONTROLS.quantity);
+    const distance = 10;
 
-  useFrame((state) => {
-    const elapsedTime = state.clock.getElapsedTime();
-    const { pointer } = state;
+    for (let i = 0; i < PARTICLE_CONTROLS.quantity; i++) {
+      positions[i * 3 + 0] = (Math.random() - 0.5) * distance;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * distance;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * distance;
 
+      let particleColor = new THREE.Color();
+      blinkSpeeds[i] = 0.0;
+
+      if (Math.random() < PARTICLE_CONTROLS.blinkPercentage) {
+        particleColor.setHSL(0, 0, 1.0);
+        blinkSpeeds[i] = Math.random() * 3 + 1;
+      } else if (Math.random() < PARTICLE_CONTROLS.glowPercentage) {
+        particleColor.setHSL(0, 0, 1.0);
+      } else {
+        const shade = 0.4 + Math.random() * 0.2;
+        particleColor.setHSL(0, 0, shade);
+      }
+      colors.set([particleColor.r, particleColor.g, particleColor.b], i * 3);
+    }
+    
+    return { positions, colors, blinkSpeeds };
+  }, []);
+
+  useFrame((state, delta) => {
+    // Mouse reactivity: We gently move the camera for a parallax effect
+    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, mousePosition.x * 0.5, 0.05);
+    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, mousePosition.y * 0.5, 0.05);
+
+    // --- INFINITE LOOP ANIMATION ---
     if (meshRef.current) {
-      const ambientRotationY = elapsedTime * 0.03;
-      const mouseRotationX = -pointer.y * 0.3;
-      const mouseRotationY = -pointer.x * 0.3;
-      meshRef.current.rotation.x = mouseRotationX;
-      meshRef.current.rotation.y = mouseRotationY + ambientRotationY;
+      const positions = meshRef.current.geometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        // Move particle along the Z axis
+        positions[i + 2] += delta * PARTICLE_CONTROLS.speed * PARTICLE_CONTROLS.direction;
+
+        // If the particle goes too far, reset it to the back with a new X/Y
+        if (PARTICLE_CONTROLS.direction === 1 && positions[i + 2] > 5) {
+            positions[i + 2] = -5;
+            positions[i] = (Math.random() - 0.5) * 10;
+            positions[i + 1] = (Math.random() - 0.5) * 10;
+        } else if (PARTICLE_CONTROLS.direction === -1 && positions[i + 2] < -5) {
+            positions[i + 2] = 5;
+            positions[i] = (Math.random() - 0.5) * 10;
+            positions[i + 1] = (Math.random() - 0.5) * 10;
+        }
+      }
+      // This is crucial: it tells Three.js to update the positions on the GPU
+      meshRef.current.geometry.attributes.position.needsUpdate = true;
+
+      // Update shader time for blinking
+      (meshRef.current.material as THREE.ShaderMaterial).uniforms.u_time.value = state.clock.getElapsedTime();
     }
   });
-
-  const positions = useMemo(() => {
-    const particles = new Float32Array(count * 3);
-    const distance = 8;
-    for (let i = 0; i < count; i++) {
-      const theta = THREE.MathUtils.randFloatSpread(360); 
-      const phi = THREE.MathUtils.randFloatSpread(360); 
-      particles[i * 3 + 0] = distance * Math.sin(theta) * Math.cos(phi);
-      particles[i * 3 + 1] = distance * Math.sin(theta) * Math.sin(phi);
-      particles[i * 3 + 2] = distance * Math.cos(theta);
-    }
-    return particles;
-  }, [count]);
 
   return (
     <points ref={meshRef}>
         <bufferGeometry>
-            <bufferAttribute attach="attributes-position" count={positions.length / 3} array={positions} itemSize={3} />
+            <bufferAttribute attach="attributes-position" count={particleData.positions.length / 3} array={particleData.positions} itemSize={3} />
+            <bufferAttribute attach="attributes-a_color" count={particleData.colors.length / 3} array={particleData.colors} itemSize={3} />
+            <bufferAttribute attach="attributes-a_blinkSpeed" count={particleData.blinkSpeeds.length} array={particleData.blinkSpeeds} itemSize={1} />
         </bufferGeometry>
-        <pointsMaterial size={0.02} color="white" sizeAttenuation={true} />
+        {/* @ts-ignore */}
+        <customParticleMaterial 
+            attach="material"
+            blending={THREE.AdditiveBlending}
+            transparent={true}
+            depthWrite={false}
+            vertexColors={true}
+        />
     </points>
   );
 };
 
-export const FloatingParticlesBackground = () => {
+
+export const FloatingParticlesBackground = ({ mousePosition }: { mousePosition: { x: number, y: number } }) => {
   return (
-    <div className="fixed inset-0 z-0 opacity-70">
+    <div className="fixed inset-0 z-0">
       <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-        <Particles />
+        <Particles mousePosition={mousePosition} />
       </Canvas>
     </div>
   );
