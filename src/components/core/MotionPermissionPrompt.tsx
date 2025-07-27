@@ -42,7 +42,7 @@ export const MotionPermissionPrompt = () => {
     return (
         <button
             onClick={requestPermission}
-            className="fixed bottom-4 right-4 z-50 p-3 bg-white/10 text-white backdrop-blur-md rounded-full animate-pulse transition-all hover:bg-white/20"
+            className="fixed bottom-4 left-4 z-50 p-3 bg-white/10 text-white backdrop-blur-md rounded-full animate-pulse transition-all hover:bg-white/20"
             aria-label="Enable motion controls"
         >
             <MotionIcon />
