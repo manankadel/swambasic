@@ -141,8 +141,9 @@ const Particles = ({ mousePosition, gyroData }: { mousePosition: { x: number, y:
 };
 
 // --- GYROSCOPE LOGIC ADDED HERE ---
-export const FloatingParticlesBackground = ({ mousePosition }: { mousePosition: { x: number, y: number } }) => {
-  const [gyroData, setGyroData] = useState({ x: 0, y: 0 });
+export const FloatingParticlesBackground = ({ mousePosition, gyroData }: { mousePosition: { x: number, y: number }, gyroData: { x: number, y: number } }) => {
+
+  const [internalGyroData, setInternalGyroData] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const handleDeviceOrientation = (event: DeviceOrientationEvent) => {
@@ -150,7 +151,7 @@ export const FloatingParticlesBackground = ({ mousePosition }: { mousePosition: 
       if (beta !== null && gamma !== null) {
         const x = THREE.MathUtils.clamp(gamma / 90, -1, 1);
         const y = THREE.MathUtils.clamp(beta / 90, -1, 1);
-        setGyroData({ x, y });
+        setInternalGyroData({ x, y });
       }
     };
     
@@ -169,7 +170,7 @@ export const FloatingParticlesBackground = ({ mousePosition }: { mousePosition: 
     <div className="fixed inset-0 z-0">
       <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
         {/* We now pass both mouse and gyro data down */}
-        <Particles mousePosition={mousePosition} gyroData={gyroData} />
+        <Particles mousePosition={mousePosition} gyroData={internalGyroData} />
       </Canvas>
     </div>
   );

@@ -1,13 +1,15 @@
 // src/app/(main)/login/page.tsx
-
 "use client";
 import { useState } from 'react';
 import { AuthForm } from '@/components/modules/auth/AuthForm';
 import { FloatingParticlesBackground } from '@/components/core/FloatingParticlesBackground';
-import { MotionPermissionPrompt } from '@/components/core/MotionPermissionPrompt'; // <-- IMPORT THE NEW PROMPT
+import { MotionPermissionPrompt } from '@/components/core/MotionPermissionPrompt';
+import { useGyroscope } from '@/hooks/useGyroscope'; // <-- Use our new hook here too
 
 const LoginPage = () => {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    // Get the smoothed gyro data from our hook
+    const { smoothedGyroData } = useGyroscope();
 
     const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
         const { clientWidth, clientHeight } = event.currentTarget;
@@ -21,9 +23,13 @@ const LoginPage = () => {
             className="min-h-screen bg-black flex items-end justify-center overflow-hidden relative p-4 pb-20"
             onMouseMove={handleMouseMove}
         >
-            <FloatingParticlesBackground mousePosition={mousePosition} />
+            {/* We now pass the SMOOTHED gyro data down to the particles */}
+            <FloatingParticlesBackground 
+                mousePosition={mousePosition} 
+                gyroData={smoothedGyroData} 
+            />
             
-            <MotionPermissionPrompt /> {/* <-- ADD THE NEW PROMPT HERE */}
+            <MotionPermissionPrompt />
             
             <main className="w-full z-20">
                 <AuthForm />
