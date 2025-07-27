@@ -4,7 +4,6 @@
 import { useState } from 'react';
 import { AuthForm } from '@/components/modules/auth/AuthForm';
 import { FloatingParticlesBackground } from '@/components/core/FloatingParticlesBackground';
-import { GyroDebugger } from '@/components/core/GyroDebugger'; // <-- 1. IMPORT THE DEBUGGER
 
 const LoginPage = () => {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -23,8 +22,7 @@ const LoginPage = () => {
         >
             <FloatingParticlesBackground mousePosition={mousePosition} />
             
-            {/* 2. ADD THE DEBUGGER COMPONENT HERE */}
-            <GyroDebugger /> 
+            
             
             <main className="w-full z-20">
                 <AuthForm />

@@ -26,7 +26,7 @@ export const AuthForm = () => {
     return (
         // ...but this div re-enables pointer events for itself and all its children.
         <div className="w-[80%] max-w-sm md:max-w-md mx-auto flex flex-col items-center pointer-events-auto">
-            <div className="w-full h-[520px]" style={{ perspective: '1200px' }}>
+            <div className="w-full h-[450px] md:h-[520px]" style={{ perspective: '1200px' }}>
                 <motion.div
                     className="relative w-full h-full"
                     animate={{ rotateY: formType === 'login' ? 0 : 180 }}
