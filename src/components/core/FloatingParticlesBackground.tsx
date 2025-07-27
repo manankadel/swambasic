@@ -17,7 +17,7 @@ const PARTICLE_CONTROLS = {
     glowPercentage: 0.8,
     blinkPercentage: 0.2,
     direction: -1, 
-    speed: 0.1,
+    speed: 0.2,
     // ONLY ADDITION: A control for gyroscope sensitivity
     gyroIntensity: 1,
 };
