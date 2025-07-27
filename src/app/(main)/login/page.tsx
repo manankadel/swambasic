@@ -4,8 +4,7 @@
 import { useState } from 'react';
 import { AuthForm } from '@/components/modules/auth/AuthForm';
 import { FloatingParticlesBackground } from '@/components/core/FloatingParticlesBackground';
-
-import { MotionPermissionPrompt } from '@/components/core/MotionPermissionPrompt';
+import { MotionPermissionPrompt } from '@/components/core/MotionPermissionPrompt'; // <-- IMPORT THE NEW PROMPT
 
 const LoginPage = () => {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -24,8 +23,8 @@ const LoginPage = () => {
         >
             <FloatingParticlesBackground mousePosition={mousePosition} />
             
+            <MotionPermissionPrompt /> {/* <-- ADD THE NEW PROMPT HERE */}
             
-             <MotionPermissionPrompt />
             <main className="w-full z-20">
                 <AuthForm />
             </main>
