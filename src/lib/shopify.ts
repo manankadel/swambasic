@@ -9,7 +9,9 @@ import {
   ShopifyCustomer,
   ShopifyAddressCreateResponseBody,
   ShopifyCustomerUpdateResponseBody,
-  NewAddressInput
+  NewAddressInput,
+  ShopifyProductDetailed, 
+  ShopifyProductDetailedResponseBody
 } from '@/types/shopify';
 
 const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!;
@@ -173,4 +175,118 @@ export async function createCustomerAddress(token: string, address: NewAddressIn
         }
     });
     return res.body.data.customerAddressCreate;
+}
+// Fetches a single product by its handle
+const getProductByHandleQuery = `
+  query getProductByHandle($handle: String!) {
+    product(handle: $handle) {
+      id
+      handle
+      title
+      descriptionHtml
+      priceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      featuredImage {
+        url
+        altText
+        width
+        height
+      }
+      images(first: 10) {
+        edges {
+          node {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+      variants(first: 10) {
+        edges {
+          node {
+            id
+            title
+            availableForSale
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+
+export async function getProductByHandle(handle: string): Promise<ShopifyProductDetailed | null> {
+  const res = await shopifyFetch<ShopifyProductDetailedResponseBody>({
+    query: getProductByHandleQuery,
+    variables: { handle },
+  });
+  return res.body.data.product;
+}
+
+
+// ADD THIS ENTIRE BLOCK OF CODE TO THE END OF src/lib/shopify.ts
+
+const getProductsDetailedQuery = `
+  query getProductsDetailed($first: Int!) {
+    products(first: $first) {
+      edges {
+        node {
+          id
+          handle
+          title
+          descriptionHtml
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+          images(first: 10) {
+            edges {
+              node {
+                url
+                altText
+              }
+            }
+          }
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                title
+                availableForSale
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export async function getProductsDetailed(count: number): Promise<ShopifyProductDetailed[]> {
+  const res = await shopifyFetch<{ data: { products: { edges: { node: ShopifyProductDetailed }[] } } }>({
+    query: getProductsDetailedQuery,
+    variables: { first: count },
+  });
+  return res.body.data.products.edges.map((edge) => edge.node);
 }

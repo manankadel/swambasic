@@ -27,7 +27,7 @@ export const HeroSection = () => {
         <h1 className="font-display font-black text-5xl md:text-8xl uppercase">
           First Drop Is Live
         </h1>
-        <p className="font-sans mt-4 max-w-lg">
+        <p className="font-sans text-center mt-4 max-w-lg">
           Explore the inaugural collection. Limited quantities available.
         </p>
         <Link href="/catalog" passHref>

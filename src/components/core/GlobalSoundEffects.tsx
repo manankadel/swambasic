@@ -18,7 +18,7 @@ export const GlobalSoundEffects = () => {
   useEffect(() => {
     // Check if window is defined to ensure this runs only on the client
     if (typeof window !== 'undefined') {
-      clickSoundRef.current = new Audio('/audio/click.mp3');
+        clickSoundRef.current = new Audio('/audio/typing.wav');
       clickSoundRef.current.volume = 0.5;
 
       typingSoundRef.current = new Audio('/audio/typing.wav');

@@ -1,18 +1,61 @@
+// src/app/(main)/cart/page.tsx
+
 "use client";
 import Link from 'next/link';
 import Image from 'next/image';
+// 1. IMPORT `useCart` and the main `Cart` type.
+import { useCart, type Cart } from '@shopify/hydrogen-react';
 
-// Placeholder data - we will replace this with real cart items from Shopify
-const placeholderCartItems = [
-  { id: 1, name: 'Obsidian Hoodie', variant: 'Size L', price: '250.00', quantity: 1, image: '/placeholder-product.png' },
-  { id: 2, name: 'Onyx Tee', variant: 'Size L', price: '120.00', quantity: 1, image: '/placeholder-product.png' },
-];
+// === THE DEFINITIVE TYPE FIX ===
+// 2. The `lines` property is a DIRECT ARRAY. There is no `.nodes`.
+// This is the correct way to get the type of a single cart line.
+type ArrayElement<T> = T extends readonly (infer U)[] ? U : T;
+type CartLine = ArrayElement<Cart['lines']>;
 
-// Set this to true to see the filled cart, or false to see the empty state
-const hasItems = true; 
+const CartLineItem = ({ line }: { line: CartLine }) => {
+    return (
+        <div className="flex gap-6 items-center">
+            <div className="w-24 h-32 bg-white/5 rounded-md flex-shrink-0 overflow-hidden">
+                {line && line.merchandise && line.merchandise.image && (
+                    <Image
+                        src={line.merchandise.image.url ?? ""}
+                        alt={line.merchandise.image.altText || line.merchandise.product?.title || ""}
+                        width={96}
+                        height={128}
+                        className="w-full h-full object-cover"
+                    />
+                )}
+            </div>
+            <div className="flex-grow">
+                <h3 className="font-sans font-semibold">{line?.merchandise?.product?.title ?? ""}</h3>
+                <p className="font-sans text-sm text-white/50">
+                    {line?.merchandise?.title}
+                </p>
+            </div>
+            <div className="font-mono text-center">
+                {line ? `x${line.quantity}` : null}
+            </div>
+            <div className="font-mono text-lg text-right">
+                ${parseFloat(line?.cost?.totalAmount?.amount ?? "0").toFixed(2)}
+            </div>
+        </div>
+    );
+};
+
 
 const CartPage = () => {
-  if (!hasItems) {
+  const { lines, cost, checkoutUrl, status } = useCart();
+
+  if (status === 'fetching') {
+      return (
+          <main className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
+              <h1 className="font-display text-5xl font-bold">Loading Cart...</h1>
+          </main>
+      );
+  }
+
+  // 3. THE ROBUST EMPTY CART CHECK
+  if (!lines || lines.length === 0 || !cost) {
     return (
       <main className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
         <h1 className="font-display text-5xl font-bold">The Canvas Is Blank.</h1>
@@ -30,36 +73,19 @@ const CartPage = () => {
       <div className="max-w-7xl mx-auto">
         <h1 className="font-display text-5xl font-bold mb-12">Your Cart</h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-          {/* Left Section: Cart Items */}
           <div className="lg:col-span-2 flex flex-col gap-6">
-            {placeholderCartItems.map(item => (
-              <div key={item.id} className="flex gap-6 items-center">
-                <div className="w-24 h-32 bg-white/5 rounded-md flex-shrink-0">
-                  {/* <Image src={item.image} alt={item.name} /> */}
-                </div>
-                <div className="flex-grow">
-                  <h3 className="font-sans font-semibold">{item.name}</h3>
-                  <p className="font-sans text-sm text-white/50">{item.variant}</p>
-                </div>
-                <div className="font-mono text-center">
-                  {/* Quantity Selector - To be made functional later */}
-                  x{item.quantity}
-                </div>
-                <div className="font-mono text-lg text-right">
-                  ${item.price}
-                </div>
-              </div>
+            {lines.map(line => (
+              line ? <CartLineItem key={line.id} line={line} /> : null
             ))}
           </div>
-
-          {/* Right Section: Order Summary */}
           <div className="lg:col-span-1">
              <div className="lg:sticky top-40 p-6 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
               <h2 className="font-display text-2xl font-bold">Summary</h2>
               <div className="mt-6 space-y-2 font-mono text-sm text-white/80">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>$370.00</span>
+                  {/* Because of the robust check above, `cost` is guaranteed to exist here. */}
+                  <span>${parseFloat(cost.subtotalAmount?.amount ?? "0").toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
@@ -68,11 +94,16 @@ const CartPage = () => {
               </div>
               <div className="mt-6 border-t border-white/10 pt-4 flex justify-between font-mono font-bold">
                 <span>Total</span>
-                <span>$370.00</span>
+                <span>${parseFloat(cost.totalAmount?.amount ?? "0").toFixed(2)}</span>
               </div>
-              <button className="mt-6 w-full py-4 bg-white text-black font-sans font-bold uppercase tracking-widest">
+              <a 
+                href={checkoutUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center mt-6 w-full py-4 bg-white text-black font-sans font-bold uppercase tracking-widest"
+              >
                 Proceed to Checkout
-              </button>
+              </a>
             </div>
           </div>
         </div>

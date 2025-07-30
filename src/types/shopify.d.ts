@@ -146,3 +146,30 @@ export interface NewAddressInput {
     country: string;
     zip: string;
 }
+
+export interface ShopifyProductVariant {
+  id: string;
+  title: string;
+  availableForSale: boolean;
+  price: ShopifyPrice;
+}
+
+export interface ShopifyProductDetailed extends ShopifyProduct {
+  descriptionHtml: string;
+  images: {
+    edges: {
+      node: ShopifyImage;
+    }[];
+  };
+  variants: {
+    edges: {
+      node: ShopifyProductVariant;
+    }[];
+  };
+}
+
+export interface ShopifyProductDetailedResponseBody {
+  data: {
+    product: ShopifyProductDetailed | null;
+  }
+}

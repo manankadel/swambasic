@@ -59,3 +59,7 @@ body {
 .animate-scroll-left {
   animation: scroll-left 40s linear infinite;
 }
+.text-stroke {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.8);
+  -webkit-text-fill-color: transparent;
+}

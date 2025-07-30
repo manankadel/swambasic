@@ -11,7 +11,13 @@ declare module '@react-three/fiber' {
     nebulaMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
 floatingPointsMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
 customParticleMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+liquidGrainMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
 
     glitchTrailMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+    glitchMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+    elementalGradientMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+atmosphericMaterial: Object3DNode<ShaderMaterial, typeof ShaderMaterial>;
+
+
   }
 }

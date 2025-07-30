@@ -30,11 +30,16 @@ src/
           page.tsx
       cart/
         page.tsx
+      catalog/
+        page.tsx
       home/
         page.tsx
       layout.tsx
       login/
         page.tsx
+      products/
+        [handle]/
+          page.tsx
     api/
       access/
         route.ts
@@ -61,12 +66,19 @@ src/
   components/
     core/
       AppHeightProvider.tsx
+      AtmosphericBackground.tsx
       BackgroundMusicPlayer.tsx
+      ElementalGradient.tsx
+      FloatingParticlesBackground.tsx
       Footer.tsx
+      GlitchTextureBackground.tsx
       GlobalSoundEffects.tsx
       Header.tsx
       InteractiveLiquidBackground.tsx
       LiquidGradient.tsx
+      LiquidGrainBackground.tsx
+      MotionPermissionPrompt.tsx
+      SubtleSmokeBackground.tsx
     modules/
       CountdownTimer.tsx
       GatewayAnimation.tsx
@@ -78,13 +90,24 @@ src/
         ProfileDetails.tsx
       auth/
         AuthForm.tsx
+      catalog/
+        CatalogClientWrapper.tsx
+        CatalogControls.tsx
+        GridView.tsx
+        ImmersiveView.tsx
+        ProductMonolith.tsx
+        Viewfinder.tsx
       glitch/
         GlitchCanvas.tsx
       homepage/
         BrandManifesto.tsx
         FeaturedProducts.tsx
         HeroSection.tsx
+      products/
+        ProductCard.tsx
+        ProductDetails.tsx
   hooks/
+    useGyroscope.ts
     useMediaQuery.ts
     useSound.ts
   lib/
