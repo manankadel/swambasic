@@ -16,12 +16,12 @@ const LiquidGrainMaterial = shaderMaterial(
     float fbm(vec2 p) { float value = 0.0; float amplitude = 0.5; for (int i = 0; i < 3; i++) { value += amplitude * noise(p); p *= 2.0; amplitude *= 0.5; } return value; }
     void main() { 
       vec2 p = vUv * 2.5; 
-      p.x += u_time * 0.05; 
+      p.x += u_time * 0.2; 
       float noiseValue = fbm(p); 
       float grain = random(vUv * 1000.0) * 0.04; 
-      float intensity = smoothstep(0.3, 0.6, noiseValue); 
+      float intensity = smoothstep(0.4, 0.7, noiseValue); 
       float glow = pow(intensity, 0.5) * 0.3;
-      vec3 color = vec3(intensity * 0.1 + 0.05 + grain + glow); 
+      vec3 color = vec3(intensity * 0.2 + 0.05 + grain + glow); 
       gl_FragColor = vec4(color, 1); 
     }`
 );

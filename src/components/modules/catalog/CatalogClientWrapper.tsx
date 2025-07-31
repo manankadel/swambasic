@@ -2,53 +2,40 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShopifyProductDetailed } from '@/types/shopify';
 import { CatalogControls } from './CatalogControls';
 import { ImmersiveView } from './ImmersiveView';
 import { GridView } from './GridView';
 import { LiquidGrainBackground } from '@/components/core/LiquidGrainBackground';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 const CollectionSplash = ({ onReveal, isClosing = false }: { onReveal: () => void; isClosing?: boolean }) => {
   const BAR_HEIGHT = 176;
+  const isDesktop = useMediaQuery('(min-width: 640px)');
 
-  // --- THIS IS THE FINAL FIX ---
-  // The text is now split into two independent blocks: top and bottom.
-  // Each block has its own transform class, so they can be moved separately.
-  //
-  // TO ADJUST THE TOP TEXT:
-  // - Mobile: Edit `-translate-y-5` in the first block.
-  // - Desktop: Edit `sm:-translate-y-10` in the first block.
-  //
-  // TO ADJUST THE BOTTOM TEXT:
-  // - Mobile: Edit `translate-y-5` in the second block.
-  // - Desktop: Edit `sm:translate-y-10` in the second block.
-  //
-  // They will NOT affect each other.
   const textContent = (
     <div className="text-center px-4">
-      {/* --- TOP TEXT BLOCK --- */}
-      <div className="transform -translate-y-20 sm:-translate-y-10">
+      <div className="transform -translate-y-4 sm:-translate-y-10">
         <p className="font-sans uppercase tracking-widest text-lg sm:text-xl text-white/50 mb-6 sm:mb-8">Collection Vol. 1</p>
         <h1 className="font-display font-black text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] leading-none">
-          Sins &nbsp;of
+          Sins  of
         </h1>
       </div>
-
-      {/* --- BOTTOM TEXT BLOCK --- */}
-      <div className="transform translate-y-20 sm:translate-y-10">
+      <div className="transform translate-y-4 sm:translate-y-10">
         <h1 className="font-display font-black text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] leading-none">
           Saints
         </h1>
-        
         <p className="font-sans uppercase tracking-widest text-lg sm:text-xl text-white/50 mt-8 sm:mt-12">
           Click to Explore The Collection.
         </p>
       </div>
     </div>
   );
-  // --- END OF FIX ---
+
+  const clipPathOpen = 'polygon(0 0, 100% 0, 100% calc(50% - 88px), 0 calc(50% - 88px), 0 calc(50% + 88px), 100% calc(50% + 88px), 100% 100%, 0 100%)';
+  const clipPathClosed = 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)';
 
   return (
     <motion.div
@@ -56,13 +43,64 @@ const CollectionSplash = ({ onReveal, isClosing = false }: { onReveal: () => voi
       initial={isClosing ? {} : undefined}
       animate={isClosing ? {} : undefined}
       exit={{}}
-      className="absolute inset-0 z-20 cursor-pointer"
+      className="fixed inset-0 z-20 cursor-pointer overflow-hidden" // Changed to fixed positioning
       onClick={!isClosing ? onReveal : undefined}
     >
-      <motion.div initial={isClosing ? { y: '-100%' } : undefined} animate={isClosing ? { y: 0 } : undefined} exit={!isClosing ? { y: '-100%' } : undefined} transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }} className="absolute top-0 left-0 w-full bg-black border-b border-white/20" style={{ height: `calc(50% - ${BAR_HEIGHT / 2}px)` }} />
-      <motion.div initial={isClosing ? { y: '100%' } : undefined} animate={isClosing ? { y: 0 } : undefined} exit={!isClosing ? { y: '100%' } : undefined} transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }} className="absolute bottom-0 left-0 w-full bg-black border-t border-white/20" style={{ height: `calc(50% - ${BAR_HEIGHT / 2}px)` }} />
-      <motion.div className="absolute inset-0 grid place-items-center text-black" style={{ clipPath: isClosing ? 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)' : 'polygon(0 0, 100% 0, 100% calc(50% - 88px), 0 calc(50% - 88px), 0 calc(50% + 88px), 100% calc(50% + 88px), 100% 100%, 0 100%)' }} initial={isClosing ? { clipPath: 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)' } : undefined} animate={isClosing ? { clipPath: 'polygon(0 0, 100% 0, 100% calc(50% - 88px), 0 calc(50% - 88px), 0 calc(50% + 88px), 100% calc(50% + 88px), 100% 100%, 0 100%)' } : undefined} exit={!isClosing ? { clipPath: 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)' } : undefined} transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}>{textContent}</motion.div>
-      <motion.div className="absolute inset-0 grid place-items-center text-white" style={{ mixBlendMode: 'difference', clipPath: isClosing ? 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)' : 'polygon(0 0, 100% 0, 100% calc(50% - 88px), 0 calc(50% - 88px), 0 calc(50% + 88px), 100% calc(50% + 88px), 100% 100%, 0 100%)' }} initial={isClosing ? { clipPath: 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)' } : undefined} animate={isClosing ? { clipPath: 'polygon(0 0, 100% 0, 100% calc(50% - 88px), 0 calc(50% - 88px), 0 calc(50% + 88px), 100% calc(50% + 88px), 100% 100%, 0 100%)' } : undefined} exit={!isClosing ? { clipPath: 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)' } : undefined} transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}>{textContent}</motion.div>
+      {/* Top panel */}
+      <motion.div 
+        initial={isClosing ? { y: '-100%' } : undefined} 
+        animate={isClosing ? { y: 0 } : undefined} 
+        exit={!isClosing ? { y: '-100%' } : undefined} 
+        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }} 
+        className="absolute top-0 left-0 w-full bg-black border-b border-white/20 will-change-transform"
+        style={{ 
+          height: `calc(50% - ${BAR_HEIGHT / 2}px)`,
+          transform: 'translateZ(0)'
+        }} 
+      />
+      
+      {/* Bottom panel */}
+      <motion.div 
+        initial={isClosing ? { y: '100%' } : undefined} 
+        animate={isClosing ? { y: 0 } : undefined} 
+        exit={!isClosing ? { y: '100%' } : undefined} 
+        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }} 
+        className="absolute bottom-0 left-0 w-full bg-black border-t border-white/20 will-change-transform"
+        style={{ 
+          height: `calc(50% - ${BAR_HEIGHT / 2}px)`,
+          transform: 'translateZ(0)'
+        }} 
+      />
+      
+      {/* Text content with clipping */}
+      <motion.div 
+        className="absolute inset-0 grid place-items-center text-black overflow-hidden"
+        style={{ 
+          clipPath: isDesktop ? clipPathOpen : 'none',
+          transform: 'translateZ(0)'
+        }} 
+        initial={isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
+        animate={isClosing && isDesktop ? { clipPath: clipPathOpen } : undefined}
+        exit={!isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
+        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+      >
+        {textContent}
+      </motion.div>
+      
+      <motion.div 
+        className="absolute inset-0 grid place-items-center text-white overflow-hidden"
+        style={{ 
+          mixBlendMode: 'difference', 
+          clipPath: isDesktop ? clipPathOpen : 'none',
+          transform: 'translateZ(0)'
+        }}
+        initial={isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
+        animate={isClosing && isDesktop ? { clipPath: clipPathOpen } : undefined}
+        exit={!isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
+        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+      >
+        {textContent}
+      </motion.div>
     </motion.div>
   );
 };
@@ -78,6 +116,31 @@ export const CatalogClientWrapper = ({ products }: CatalogClientWrapperProps) =>
   const [viewMode, setViewMode] = useState<ViewMode>('immersive');
   const [focusedIndex, setFocusedIndex] = useState(0);
 
+  // Manage scroll behavior during different states
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    
+    if (!isRevealed || isClosing) {
+      // During splash/closing: hide scroll completely
+      html.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      html.classList.remove('catalog-revealed');
+    } else {
+      // Content revealed: enable scroll but hide scrollbar
+      html.style.overflow = '';
+      body.style.overflow = '';
+      html.classList.add('catalog-revealed');
+    }
+
+    return () => {
+      // Cleanup
+      html.style.overflow = '';
+      body.style.overflow = '';
+      html.classList.remove('catalog-revealed');
+    };
+  }, [isRevealed, isClosing]);
+
   const handleGoBack = () => {
     setIsClosing(true);
     setTimeout(() => {
@@ -88,10 +151,17 @@ export const CatalogClientWrapper = ({ products }: CatalogClientWrapperProps) =>
 
   return (
     <>
+      {/* Background - always present */}
       <LiquidGrainBackground />
+      
+      {/* Splash screen overlay */}
       <AnimatePresence>
-        {(!isRevealed || isClosing) && <CollectionSplash onReveal={() => setIsRevealed(true)} isClosing={isClosing} />}
+        {(!isRevealed || isClosing) && (
+          <CollectionSplash onReveal={() => setIsRevealed(true)} isClosing={isClosing} />
+        )}
       </AnimatePresence>
+      
+      {/* Main content - scrollable when revealed */}
       <AnimatePresence>
         {isRevealed && !isClosing && (
           <motion.div
@@ -99,6 +169,7 @@ export const CatalogClientWrapper = ({ products }: CatalogClientWrapperProps) =>
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.8, delay: 0.8 } }}
             exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            className="relative z-10 min-h-screen" // Allow content to be scrollable
           >
             {viewMode === 'immersive' && (
               <ImmersiveView products={products} focusedIndex={focusedIndex} setFocusedIndex={setFocusedIndex} />

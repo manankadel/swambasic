@@ -110,7 +110,8 @@ const DesktopLayout = () => {
           className="relative w-36 h-36 md:w-56 md:h-56"
         >
           <Image 
-            src="/logo-rotating.GIF" 
+            src="https://cdn.jsdelivr.net/gh/manankadel/swambasic@main/public/logo-rotating.GIF"
+
             alt="SWAMBASIC Logo" 
             fill 
             className="object-contain" 

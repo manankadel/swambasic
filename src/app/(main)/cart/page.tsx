@@ -3,20 +3,27 @@
 "use client";
 import Link from 'next/link';
 import Image from 'next/image';
-// 1. IMPORT `useCart` and the main `Cart` type.
 import { useCart, type Cart } from '@shopify/hydrogen-react';
 
-// === THE DEFINITIVE TYPE FIX ===
-// 2. The `lines` property is a DIRECT ARRAY. There is no `.nodes`.
-// This is the correct way to get the type of a single cart line.
 type ArrayElement<T> = T extends readonly (infer U)[] ? U : T;
 type CartLine = ArrayElement<Cart['lines']>;
 
-const CartLineItem = ({ line }: { line: CartLine }) => {
+// --- THIS IS THE FIX: The type for 'status' is now correct and matches the hook ---
+type CartStatus = 'uninitialized' | 'fetching' | 'idle' | 'creating' | 'updating';
+
+const CartLineItem = ({ 
+    line,
+    linesRemove,
+    status 
+}: { 
+    line: CartLine,
+    linesRemove: (lineIds: string[]) => void,
+    status: CartStatus
+}) => {
     return (
         <div className="flex gap-6 items-center">
             <div className="w-24 h-32 bg-white/5 rounded-md flex-shrink-0 overflow-hidden">
-                {line && line.merchandise && line.merchandise.image && (
+                {line?.merchandise?.image && (
                     <Image
                         src={line.merchandise.image.url ?? ""}
                         alt={line.merchandise.image.altText || line.merchandise.product?.title || ""}
@@ -31,6 +38,18 @@ const CartLineItem = ({ line }: { line: CartLine }) => {
                 <p className="font-sans text-sm text-white/50">
                     {line?.merchandise?.title}
                 </p>
+                <button 
+                    // --- THIS IS THE FIX: We check if line.id exists before calling the function ---
+                    onClick={() => {
+                        if (line?.id) {
+                            linesRemove([line.id]);
+                        }
+                    }}
+                    disabled={status === 'updating'}
+                    className="text-xs font-sans text-white/50 hover:text-red-400 transition-colors mt-2 disabled:opacity-50"
+                >
+                    Remove
+                </button>
             </div>
             <div className="font-mono text-center">
                 {line ? `x${line.quantity}` : null}
@@ -44,9 +63,10 @@ const CartLineItem = ({ line }: { line: CartLine }) => {
 
 
 const CartPage = () => {
-  const { lines, cost, checkoutUrl, status } = useCart();
+  const { lines, cost, checkoutUrl, status, linesRemove } = useCart();
 
-  if (status === 'fetching') {
+  // --- THIS IS THE FIX: We now check for both loading states ---
+  if (status === 'uninitialized' || status === 'fetching') {
       return (
           <main className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
               <h1 className="font-display text-5xl font-bold">Loading Cart...</h1>
@@ -54,13 +74,12 @@ const CartPage = () => {
       );
   }
 
-  // 3. THE ROBUST EMPTY CART CHECK
   if (!lines || lines.length === 0 || !cost) {
     return (
       <main className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
         <h1 className="font-display text-5xl font-bold">The Canvas Is Blank.</h1>
         <Link href="/catalog">
-          <button className="mt-8 px-8 py-4 bg-white text-black font-sans font-bold uppercase tracking-widest">
+          <button className="mt-8 px-8 py-4 bg-white text-black font-sans font-bold uppercase tracking-widest rounded-full">
             Discover The Collection
           </button>
         </Link>
@@ -75,7 +94,7 @@ const CartPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           <div className="lg:col-span-2 flex flex-col gap-6">
             {lines.map(line => (
-              line ? <CartLineItem key={line.id} line={line} /> : null
+              line ? <CartLineItem key={line.id} line={line} linesRemove={linesRemove} status={status} /> : null
             ))}
           </div>
           <div className="lg:col-span-1">
@@ -84,7 +103,6 @@ const CartPage = () => {
               <div className="mt-6 space-y-2 font-mono text-sm text-white/80">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  {/* Because of the robust check above, `cost` is guaranteed to exist here. */}
                   <span>${parseFloat(cost.subtotalAmount?.amount ?? "0").toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -96,12 +114,7 @@ const CartPage = () => {
                 <span>Total</span>
                 <span>${parseFloat(cost.totalAmount?.amount ?? "0").toFixed(2)}</span>
               </div>
-              <a 
-                href={checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-center mt-6 w-full py-4 bg-white text-black font-sans font-bold uppercase tracking-widest"
-              >
+              <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="block text-center mt-6 w-full py-4 bg-white text-black font-sans font-bold uppercase tracking-widest rounded-full">
                 Proceed to Checkout
               </a>
             </div>

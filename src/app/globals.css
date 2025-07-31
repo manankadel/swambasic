@@ -63,3 +63,41 @@ body {
   -webkit-text-stroke: 1px rgba(255, 255, 255, 0.8);
   -webkit-text-fill-color: transparent;
 }
+
+/* Add this to your global CSS file (e.g., globals.css or app.css) */
+
+/* Hide scrollbar while maintaining scroll functionality */
+.hide-scrollbar {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Apply to html and body when content is revealed */
+.catalog-revealed {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.catalog-revealed::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Utility class for hiding scrollbars */
+.scrollbar-hide {
+  /* IE and Edge */
+  -ms-overflow-style: none;
+  
+  /* Firefox */
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  /* WebKit */
+  display: none;
+}
