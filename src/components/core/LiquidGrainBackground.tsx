@@ -21,7 +21,7 @@ const LiquidGrainMaterial = shaderMaterial(
       float grain = random(vUv * 1000.0) * 0.04; 
       float intensity = smoothstep(0.4, 0.7, noiseValue); 
       float glow = pow(intensity, 0.5) * 0.3;
-      vec3 color = vec3(intensity * 0.2 + 0.05 + grain + glow); 
+      vec3 color = vec3(intensity * 0.1 + 0.05 + grain + glow); 
       gl_FragColor = vec4(color, 1); 
     }`
 );

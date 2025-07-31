@@ -1,16 +1,18 @@
+// src/app/(main)/home/page.tsx
+
 "use client";
 
 import { HeroSection } from "@/components/modules/homepage/HeroSection";
 import { FeaturedProducts } from "@/components/modules/homepage/FeaturedProducts";
 import { motion } from "framer-motion";
-import { BrandManifesto } from "@/components/modules/homepage/BrandManifesto"; // <-- IMPORT THE NEW COMPONENT
+import { BrandManifesto } from "@/components/modules/homepage/BrandManifesto";
+import GlitchMarquee  from "@/components/modules/homepage/GlitchMarquee"; // <-- Import the new, correct component
 
 const HomePage = () => {
   return (
     <main>
         <HeroSection />
 
-      {/* This ensures the content below fades in as you scroll to it */}
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -19,9 +21,12 @@ const HomePage = () => {
       >
         <FeaturedProducts />
       </motion.div>
+      
       <BrandManifesto />
       
-      {/* We will design and build out the full homepage content here */}
+      {/* --- THIS IS THE FIX: The new interactive art piece is here --- */}
+      <GlitchMarquee />
+      
     </main>
   );
 };

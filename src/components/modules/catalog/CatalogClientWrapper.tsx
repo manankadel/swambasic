@@ -51,7 +51,10 @@ const CollectionSplash = ({ onReveal, isClosing = false }: { onReveal: () => voi
         initial={isClosing ? { y: '-100%' } : undefined} 
         animate={isClosing ? { y: 0 } : undefined} 
         exit={!isClosing ? { y: '-100%' } : undefined} 
-        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }} 
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }} 
         className="absolute top-0 left-0 w-full bg-black border-b border-white/20 will-change-transform"
         style={{ 
           height: `calc(50% - ${BAR_HEIGHT / 2}px)`,
@@ -64,7 +67,10 @@ const CollectionSplash = ({ onReveal, isClosing = false }: { onReveal: () => voi
         initial={isClosing ? { y: '100%' } : undefined} 
         animate={isClosing ? { y: 0 } : undefined} 
         exit={!isClosing ? { y: '100%' } : undefined} 
-        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }} 
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }} 
         className="absolute bottom-0 left-0 w-full bg-black border-t border-white/20 will-change-transform"
         style={{ 
           height: `calc(50% - ${BAR_HEIGHT / 2}px)`,
@@ -81,8 +87,14 @@ const CollectionSplash = ({ onReveal, isClosing = false }: { onReveal: () => voi
         }} 
         initial={isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
         animate={isClosing && isDesktop ? { clipPath: clipPathOpen } : undefined}
-        exit={!isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
-        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+        exit={!isClosing ? { 
+          clipPath: isDesktop ? clipPathClosed : 'none',
+          opacity: 0 
+        } : undefined}
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }}
       >
         {textContent}
       </motion.div>
@@ -96,8 +108,14 @@ const CollectionSplash = ({ onReveal, isClosing = false }: { onReveal: () => voi
         }}
         initial={isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
         animate={isClosing && isDesktop ? { clipPath: clipPathOpen } : undefined}
-        exit={!isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
-        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+        exit={!isClosing ? { 
+          clipPath: isDesktop ? clipPathClosed : 'none',
+          opacity: 0 
+        } : undefined}
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }}
       >
         {textContent}
       </motion.div>
@@ -150,7 +168,7 @@ export const CatalogClientWrapper = ({ products }: CatalogClientWrapperProps) =>
   };
 
   return (
-    <>
+    <div className="relative"> {/* Remove min-h-screen constraint that was hiding footer */}
       {/* Background - always present */}
       <LiquidGrainBackground />
       
@@ -167,9 +185,9 @@ export const CatalogClientWrapper = ({ products }: CatalogClientWrapperProps) =>
           <motion.div
             key="content"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.8, delay: 0.8 } }}
-            exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            className="relative z-10 min-h-screen" // Allow content to be scrollable
+            animate={{ opacity: 1, transition: { duration: 0.6, delay: 0.4 } }} // Faster fade in
+            exit={{ opacity: 0, transition: { duration: 0.3 } }} // Faster fade out
+            className="relative z-10" // Remove min-h-screen to let content flow naturally
           >
             {viewMode === 'immersive' && (
               <ImmersiveView products={products} focusedIndex={focusedIndex} setFocusedIndex={setFocusedIndex} />
@@ -179,6 +197,6 @@ export const CatalogClientWrapper = ({ products }: CatalogClientWrapperProps) =>
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
