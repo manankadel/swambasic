@@ -7,15 +7,7 @@ import { motion } from 'framer-motion';
 export const HeroSection = () => {
   return (
     <section className="relative h-screen w-screen flex items-center justify-center">
-     <video
-  src="https://cdn.jsdelivr.net/gh/manankadel/swambasic/public/hero-video.mp4"
-  autoPlay
-  loop
-  muted
-  playsInline
-  className="absolute top-0 left-0 w-full h-full object-cover -z-10"
-/>
-
+      <video src="/hero-video.mp4" autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover -z-10" />
       <div className="absolute top-0 left-0 w-full h-full bg-black/50 -z-10" />
       <motion.div 
         className="text-center text-white z-10 flex flex-col items-center" // --- FIX: Added flexbox for alignment
