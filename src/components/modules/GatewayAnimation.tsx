@@ -146,8 +146,8 @@ const MobileLayout = () => {
           variants={MOBILE_VARIANTS.logoRotation}
         >
           <Image 
-            src="/logo-rotating.GIF" 
-            alt="SWAMBASIC Logo" 
+            src="https://cdn.jsdelivr.net/gh/manankadel/swambasic@main/public/logo-rotating.GIF"
+ alt="SWAMBASIC Logo" 
             fill 
             className="object-contain" 
             unoptimized={true}
