@@ -37,9 +37,19 @@ src/
       layout.tsx
       login/
         page.tsx
+      privacy/
+        page.tsx
       products/
         [handle]/
           page.tsx
+      reach-out/
+        page.tsx
+      refunds/
+        page.tsx
+      shipping/
+        page.tsx
+      terms/
+        page.tsx
     api/
       access/
         route.ts
@@ -55,6 +65,8 @@ src/
           route.ts
         register/
           route.ts
+      contact/
+        route.ts
       waitlist/
         route.ts
     fonts.ts
@@ -71,6 +83,7 @@ src/
       ElementalGradient.tsx
       FloatingParticlesBackground.tsx
       Footer.tsx
+      FullScreenImageViewer.tsx
       GlitchTextureBackground.tsx
       GlobalSoundEffects.tsx
       Header.tsx
@@ -78,6 +91,7 @@ src/
       LiquidGradient.tsx
       LiquidGrainBackground.tsx
       MotionPermissionPrompt.tsx
+      PolicyPageLayout.tsx
       SubtleSmokeBackground.tsx
     modules/
       CountdownTimer.tsx
@@ -102,11 +116,15 @@ src/
       homepage/
         BrandManifesto.tsx
         FeaturedProducts.tsx
+        GlitchMarquee.tsx
         HeroSection.tsx
+        InteractiveMarquee.tsx
       products/
+        InteractiveProductCard.tsx
         ProductCard.tsx
         ProductDetails.tsx
   hooks/
+    useCartNotification.tsx
     useGyroscope.ts
     useMediaQuery.ts
     useSound.ts

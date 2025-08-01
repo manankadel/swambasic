@@ -10,12 +10,24 @@ const CUSTOMER_TOKEN_COOKIE_NAME = 'swambasic_customer_token';
 // Define which paths are protected and require a user to be logged in
 const PROTECTED_ROUTES = ['/account', '/cart'];
 
+// --- NEW: Define public pages that should bypass the site password gate ---
+// These are required for payment gateway verification (e.g., Razorpay, Shopify Payments)
+const PUBLIC_PAGES = [
+    '/terms',
+    '/privacy',
+    '/shipping',
+    '/refunds',
+    '/reach-out' // This is your "Contact Us" page
+];
+
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // --- Protection Mechanism #1: The Main Site Password ---
-    // This runs for ALL pages EXCEPT the entry page itself (`/`).
-    if (pathname !== '/') {
+    // --- UPDATED Protection Mechanism #1: The Main Site Password ---
+    const isPublicPage = PUBLIC_PAGES.includes(pathname);
+
+    // This runs for ALL pages EXCEPT the entry page (`/`) and the new public pages.
+    if (pathname !== '/' && !isPublicPage) {
         const siteAccessToken = request.cookies.get(SITE_ACCESS_TOKEN_NAME);
         
         // If there's no site access token, force the user back to the entry page.
@@ -24,8 +36,7 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // --- Protection Mechanism #2: Customer Login ---
-    // This checks if the user is trying to access a route defined in PROTECTED_ROUTES.
+    // --- Protection Mechanism #2: Customer Login (No change here) ---
     const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
 
     if (isProtectedRoute) {
@@ -37,8 +48,7 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // --- Protection Mechanism #3: Prevent Logged-in Users from seeing Login Page ---
-    // If a user is already logged in, they shouldn't be able to see the /login page again.
+    // --- Protection Mechanism #3: Prevent Logged-in Users from seeing Login Page (No change here) ---
     if (pathname === '/login') {
         const customerToken = request.cookies.get(CUSTOMER_TOKEN_COOKIE_NAME);
 

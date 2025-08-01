@@ -4,7 +4,7 @@
 
 # Shopify Storefront API (Public)
 NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN="pvt"
-NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN="14btvf-mp.myshopify.com"
+NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN="pvt"
 
 # Shopify Admin API (Private - DO NOT prefix with NEXT_PUBLIC_)
 SHOPIFY_ADMIN_ACCESS_TOKEN="pvt"
@@ -487,20 +487,27 @@ export default AccountProfilePage;
 "use client";
 import Link from 'next/link';
 import Image from 'next/image';
-// 1. IMPORT `useCart` and the main `Cart` type.
 import { useCart, type Cart } from '@shopify/hydrogen-react';
 
-// === THE DEFINITIVE TYPE FIX ===
-// 2. The `lines` property is a DIRECT ARRAY. There is no `.nodes`.
-// This is the correct way to get the type of a single cart line.
 type ArrayElement<T> = T extends readonly (infer U)[] ? U : T;
 type CartLine = ArrayElement<Cart['lines']>;
 
-const CartLineItem = ({ line }: { line: CartLine }) => {
+// --- THIS IS THE FIX: The type for 'status' is now correct and matches the hook ---
+type CartStatus = 'uninitialized' | 'fetching' | 'idle' | 'creating' | 'updating';
+
+const CartLineItem = ({ 
+    line,
+    linesRemove,
+    status 
+}: { 
+    line: CartLine,
+    linesRemove: (lineIds: string[]) => void,
+    status: CartStatus
+}) => {
     return (
         <div className="flex gap-6 items-center">
             <div className="w-24 h-32 bg-white/5 rounded-md flex-shrink-0 overflow-hidden">
-                {line && line.merchandise && line.merchandise.image && (
+                {line?.merchandise?.image && (
                     <Image
                         src={line.merchandise.image.url ?? ""}
                         alt={line.merchandise.image.altText || line.merchandise.product?.title || ""}
@@ -515,6 +522,18 @@ const CartLineItem = ({ line }: { line: CartLine }) => {
                 <p className="font-sans text-sm text-white/50">
                     {line?.merchandise?.title}
                 </p>
+                <button 
+                    // --- THIS IS THE FIX: We check if line.id exists before calling the function ---
+                    onClick={() => {
+                        if (line?.id) {
+                            linesRemove([line.id]);
+                        }
+                    }}
+                    disabled={status === 'updating'}
+                    className="text-xs font-sans text-white/50 hover:text-red-400 transition-colors mt-2 disabled:opacity-50"
+                >
+                    Remove
+                </button>
             </div>
             <div className="font-mono text-center">
                 {line ? `x${line.quantity}` : null}
@@ -528,9 +547,10 @@ const CartLineItem = ({ line }: { line: CartLine }) => {
 
 
 const CartPage = () => {
-  const { lines, cost, checkoutUrl, status } = useCart();
+  const { lines, cost, checkoutUrl, status, linesRemove } = useCart();
 
-  if (status === 'fetching') {
+  // --- THIS IS THE FIX: We now check for both loading states ---
+  if (status === 'uninitialized' || status === 'fetching') {
       return (
           <main className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
               <h1 className="font-display text-5xl font-bold">Loading Cart...</h1>
@@ -538,13 +558,12 @@ const CartPage = () => {
       );
   }
 
-  // 3. THE ROBUST EMPTY CART CHECK
   if (!lines || lines.length === 0 || !cost) {
     return (
       <main className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
         <h1 className="font-display text-5xl font-bold">The Canvas Is Blank.</h1>
         <Link href="/catalog">
-          <button className="mt-8 px-8 py-4 bg-white text-black font-sans font-bold uppercase tracking-widest">
+          <button className="mt-8 px-8 py-4 bg-white text-black font-sans font-bold uppercase tracking-widest rounded-full">
             Discover The Collection
           </button>
         </Link>
@@ -559,7 +578,7 @@ const CartPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           <div className="lg:col-span-2 flex flex-col gap-6">
             {lines.map(line => (
-              line ? <CartLineItem key={line.id} line={line} /> : null
+              line ? <CartLineItem key={line.id} line={line} linesRemove={linesRemove} status={status} /> : null
             ))}
           </div>
           <div className="lg:col-span-1">
@@ -568,7 +587,6 @@ const CartPage = () => {
               <div className="mt-6 space-y-2 font-mono text-sm text-white/80">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  {/* Because of the robust check above, `cost` is guaranteed to exist here. */}
                   <span>${parseFloat(cost.subtotalAmount?.amount ?? "0").toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -580,12 +598,7 @@ const CartPage = () => {
                 <span>Total</span>
                 <span>${parseFloat(cost.totalAmount?.amount ?? "0").toFixed(2)}</span>
               </div>
-              <a 
-                href={checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-center mt-6 w-full py-4 bg-white text-black font-sans font-bold uppercase tracking-widest"
-              >
+              <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="block text-center mt-6 w-full py-4 bg-white text-black font-sans font-bold uppercase tracking-widest rounded-full">
                 Proceed to Checkout
               </a>
             </div>
@@ -602,20 +615,19 @@ export default CartPage;
 
 // src/app/(main)/catalog/page.tsx
 
-import { getProducts } from '@/lib/shopify';
+import { getProductsDetailed } from '@/lib/shopify'; // <-- Use the detailed function
 import { CatalogClientWrapper } from '@/components/modules/catalog/CatalogClientWrapper';
+import { ShopifyProductDetailed } from '@/types/shopify';
 
-// This line is important for Vercel deployment
 export const dynamic = 'force-dynamic';
 
 export default async function CatalogPage() {
   
-  // Fetching products on the server
-  const products = await getProducts(10); // Fetch 10 products for the catalog
+  // This now fetches the DETAILED products that the wrapper needs.
+  const products: ShopifyProductDetailed[] = await getProductsDetailed(10); 
 
   return (
-    <main className="min-h-screen bg-transparent overflow-hidden">
-        {/* Pass the server-fetched products to the client component */}
+    <main className="relative min-h-screen w-full">
         <CatalogClientWrapper products={products} />
     </main>
   );
@@ -623,19 +635,21 @@ export default async function CatalogPage() {
 
 ### .\src\app\(main)\home\page.tsx ###
 
+// src/app/(main)/home/page.tsx
+
 "use client";
 
 import { HeroSection } from "@/components/modules/homepage/HeroSection";
 import { FeaturedProducts } from "@/components/modules/homepage/FeaturedProducts";
 import { motion } from "framer-motion";
-import { BrandManifesto } from "@/components/modules/homepage/BrandManifesto"; // <-- IMPORT THE NEW COMPONENT
+import { BrandManifesto } from "@/components/modules/homepage/BrandManifesto";
+import GlitchMarquee  from "@/components/modules/homepage/GlitchMarquee"; // <-- Import the new, correct component
 
 const HomePage = () => {
   return (
     <main>
         <HeroSection />
 
-      {/* This ensures the content below fades in as you scroll to it */}
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -644,31 +658,30 @@ const HomePage = () => {
       >
         <FeaturedProducts />
       </motion.div>
+      
       <BrandManifesto />
       
-      {/* We will design and build out the full homepage content here */}
+      {/* --- THIS IS THE FIX: The new interactive art piece is here --- */}
+      <GlitchMarquee />
+      
     </main>
   );
 };
 
 export default HomePage;
 
+
 ### .\src\app\(main)\layout.tsx ###
 
 // src/app/(main)/layout.tsx
-
 "use client";
 import { Header } from "@/components/core/Header";
 import { Footer } from "@/components/core/Footer";
-import { CartProvider, ShopifyProvider } from '@shopify/hydrogen-react'; // <-- 1. IMPORT
+import { CartProvider, ShopifyProvider } from '@shopify/hydrogen-react';
+import { CartToast } from '@/hooks/useCartNotification'; // Import the new toast component
 
-export default function MainLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function MainLayout({ children }: { children: React.ReactNode; }) {
   return (
-    // 2. WRAP EVERYTHING in the providers
     <ShopifyProvider
       storeDomain={process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!}
       storefrontToken={process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!}
@@ -681,6 +694,7 @@ export default function MainLayout({
           <Header />
           {children}
           <Footer />
+          <CartToast /> {/* Add the global toast component here */}
         </div>
       </CartProvider>
     </ShopifyProvider>
@@ -731,28 +745,279 @@ const LoginPage = () => {
 
 export default LoginPage;
 
+### .\src\app\(main)\privacy\page.tsx ###
+
+// src/app/(main)/privacy/page.tsx
+import { PolicyPageLayout } from '@/components/core/PolicyPageLayout';
+export default function PrivacyPage() {
+  return (
+    <PolicyPageLayout title="Privacy Policy">
+      <p>Your privacy is important to us. This policy outlines how we collect, use, and protect your personal information.</p>
+      <h2>Information We Collect</h2>
+      <p>We collect information you provide directly to us, such as your name, email address, shipping address, and payment information when you place an order.</p>
+      <h2>How We Use Information</h2>
+      <p>We use the information we collect to process transactions, send promotional emails (if you opt-in), and improve our services.</p>
+    </PolicyPageLayout>
+  );
+}
+
 ### .\src\app\(main)\products\[handle]\page.tsx ###
 
 // src/app/(main)/products/[handle]/page.tsx
+"use client";
+
+import { useState, useMemo, useEffect } from 'react';
+import { notFound, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCart } from '@shopify/hydrogen-react';
+import { ShopifyProductDetailed } from '@/types/shopify';
 import { getProductByHandle } from '@/lib/shopify';
-import { notFound } from 'next/navigation';
-import { ProductDetails } from '@/components/modules/products/ProductDetails';
-// This is a Server Component that fetches data
-export default async function ProductPage({ params }: { params: { handle: string } }) {
-const { handle } = params;
-const product = await getProductByHandle(handle);
-// If no product is found for the handle, show a 404 page
-if (!product) {
-return notFound();
+import Image from 'next/image';
+import { useCartNotification } from '@/hooks/useCartNotification';
+import { FullScreenImageViewer } from '@/components/core/FullScreenImageViewer';
+
+const getOptimizedShopifyImageUrl = (url: string, size: number) => { if (!url) return ''; try { const urlObj = new URL(url); const extension = urlObj.pathname.split('.').pop(); const pathWithoutExtension = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('.')); return `${urlObj.origin}${pathWithoutExtension}_${size}x.${extension}`; } catch (e) { return url; } };
+const ExpandIcon = () => ( <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> );
+
+const ProductDetailsClient = ({ product }: { product: ShopifyProductDetailed }) => {
+    const { linesAdd, status: cartStatus } = useCart();
+    const { showNotification } = useCartNotification();
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [selectedVariantId, setSelectedVariantId] = useState(product.variants.edges.find(v => v.node.availableForSale)?.node.id || product.variants.edges[0]?.node.id);
+    const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
+
+    const imageGallery = useMemo(() => { if (!product?.featuredImage) return []; const otherImages = product.images?.edges.map(edge => edge.node) || []; return [product.featuredImage, ...otherImages.filter(img => img.url !== product.featuredImage.url)]; }, [product]);
+    const selectedVariant = useMemo(() => product.variants.edges.find(edge => edge.node.id === selectedVariantId)?.node, [product, selectedVariantId]);
+    const isAddingToCart = cartStatus === 'updating';
+
+    const handleAddToCart = () => { if (selectedVariant) { linesAdd([{ merchandiseId: selectedVariant.id, quantity: 1 }]); showNotification(`${product.title} added to cart`); } };
+
+    return (
+        <>
+            <FullScreenImageViewer imageUrl={fullScreenImage} onClose={() => setFullScreenImage(null)} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
+                <div className="w-full flex flex-col gap-4">
+                    <div className="relative w-full aspect-square">
+                        <AnimatePresence mode="wait">
+                            <motion.div key={currentImageIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="w-full h-full">
+                                {imageGallery[currentImageIndex] && (
+                                    <Image
+                                        src={getOptimizedShopifyImageUrl(imageGallery[currentImageIndex].url, 800)}
+                                        alt={imageGallery[currentImageIndex].altText || product.title}
+                                        fill
+                                        className="object-contain rounded-lg"
+                                        priority
+                                    />
+                                )}
+                            </motion.div>
+                        </AnimatePresence>
+                        <button onClick={() => setFullScreenImage(imageGallery[currentImageIndex].url)} className="absolute top-3 right-3 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white/70 hover:text-white"> <ExpandIcon /> </button>
+                    </div>
+                    <div className="flex justify-center items-center gap-3">
+                        {imageGallery.map((image, index) => (
+                            <button key={image.url} onClick={() => setCurrentImageIndex(index)} className={`w-16 h-20 rounded-md overflow-hidden border-2 transition-colors ${currentImageIndex === index ? 'border-white' : 'border-transparent hover:border-white/50'}`}>
+                                <Image src={getOptimizedShopifyImageUrl(image.url, 100)} alt={`Thumbnail ${index + 1}`} width={64} height={80} className="object-cover w-full h-full" />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="flex flex-col">
+                    <h1 className="font-display text-4xl md:text-5xl font-bold">{product.title}</h1>
+                    {selectedVariant && <div className="inline-block my-4"> <p className="font-mono text-xl text-white/90 bg-white/5 px-3 py-1 rounded-md">${selectedVariant.price.amount}</p> </div>}
+                    <div className="font-sans text-white/70 space-y-4 prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: product.descriptionHtml }} />
+                    <div className="mt-8 pt-8 border-t border-white/10">
+                        <h2 className="font-sans text-sm uppercase tracking-wider text-white/50"> Size </h2>
+                        <div className="flex flex-wrap gap-3 mt-4">
+                            {product.variants?.edges.map(({ node: variant }) => ( <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} disabled={!variant.availableForSale} className={`px-4 py-2 rounded-md font-sans text-sm font-semibold border transition-colors duration-200 ${selectedVariantId === variant.id ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'} ${!variant.availableForSale ? 'opacity-30 cursor-not-allowed line-through' : 'hover:border-white/70'}`}> {variant.title} </button> ))}
+                        </div>
+                        <button onClick={handleAddToCart} disabled={!selectedVariant?.availableForSale || isAddingToCart} className="w-full mt-8 py-4 bg-white text-black font-sans font-bold uppercase tracking-widest disabled:opacity-50 enabled:hover:bg-white/80 transition-all rounded-full">
+                            {isAddingToCart ? 'Adding...' : !selectedVariant?.availableForSale ? 'Sold Out' : 'Add to Cart'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+// This is the server component that fetches the data
+export default function ProductPage({ params }: { params: { handle: string } }) {
+    const [product, setProduct] = useState<ShopifyProductDetailed | null>(null);
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            const fetchedProduct = await getProductByHandle(params.handle);
+            if (!fetchedProduct) {
+                notFound();
+            }
+            setProduct(fetchedProduct);
+        };
+        fetchProduct();
+    }, [params.handle]);
+
+    if (!product) {
+        return <div className="min-h-screen bg-black flex items-center justify-center text-white">Loading...</div>;
+    }
+
+    return (
+        <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
+            <div className="max-w-7xl mx-auto">
+                <ProductDetailsClient product={product} />
+            </div>
+        </main>
+    );
 }
-// Pass the fetched product data to the client component
-return (
-<main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
-<div className="max-w-7xl mx-auto">
-<ProductDetails product={product} />
-</div>
-</main>
-);
+
+### .\src\app\(main)\reach-out\page.tsx ###
+
+// src/app/(main)/reach-out/page.tsx
+"use client";
+
+import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { useState } from 'react';
+import { FloatingParticlesBackground } from '@/components/core/FloatingParticlesBackground';
+
+const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.3 } } };
+const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: 'easeOut' } } };
+
+export default function ReachOutPage() {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const rotateX = useTransform(mouseY, [-0.5, 0.5], ['7deg', '-7deg']);
+  const rotateY = useTransform(mouseX, [-0.5, 0.5], ['-7deg', '7deg']);
+  
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const { clientWidth, clientHeight } = event.currentTarget;
+    const x = (event.clientX / clientWidth) - 0.5;
+    const y = (event.clientY / clientHeight) - 0.5;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+  
+  // --- THIS IS THE FIX: State management for the form ---
+  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [formStatus, setFormStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setFormStatus('loading');
+      setStatusMessage('');
+
+      try {
+          const response = await fetch('/api/contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(formData),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Something went wrong.');
+          
+          setFormStatus('success');
+          setStatusMessage(result.message);
+          setFormData({ name: '', email: '', message: '' }); // Clear form
+      } catch (error: any) {
+          setFormStatus('error');
+          setStatusMessage(error.message);
+      }
+  };
+  // --- END OF FIX ---
+
+  return (
+    <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden p-4 pt-32 pb-12" onMouseMove={handleMouseMove}>
+      <FloatingParticlesBackground mousePosition={{ x: 0, y: 0 }} gyroData={{ x: 0, y: 0 }} />
+      
+      <motion.div className="w-full max-w-xl z-10" style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }} variants={containerVariants} initial="hidden" animate="visible">
+        <div className="rounded-2xl border border-white/10 bg-black/20 backdrop-blur-2xl shadow-2xl shadow-black/50 p-8 md:p-12">
+            <motion.h1 variants={itemVariants} className="font-display text-4xl md:text-5xl font-bold mb-2"> Let's Connect </motion.h1>
+            <motion.p variants={itemVariants} className="font-sans text-base text-white/60 mb-8 max-w-md"> For inquiries, collaborations, or conversations. </motion.p>
+            
+            {/* --- THIS IS THE FIX: Form now uses the new logic --- */}
+            <motion.form variants={itemVariants} className="space-y-6" onSubmit={handleSubmit}>
+                <div className="flex flex-col">
+                  <label htmlFor="name" className="font-sans text-xs uppercase tracking-widest text-white/50 mb-2">Name</label>
+                  <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} required className="bg-black/20 border border-white/10 rounded-lg p-3 font-sans focus:outline-none focus:border-white/50 transition-colors" />
+                </div>
+                <div className="flex flex-col">
+                  <label htmlFor="email" className="font-sans text-xs uppercase tracking-widest text-white/50 mb-2">Email</label>
+                  <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} required className="bg-black/20 border border-white/10 rounded-lg p-3 font-sans focus:outline-none focus:border-white/50 transition-colors" />
+                </div>
+                <div className="flex flex-col">
+                  <label htmlFor="message" className="font-sans text-xs uppercase tracking-widest text-white/50 mb-2">Message</label>
+                  <textarea id="message" name="message" value={formData.message} onChange={handleInputChange} required rows={4} className="bg-black/20 border border-white/10 rounded-lg p-3 font-sans focus:outline-none focus:border-white/50 transition-colors resize-none"></textarea>
+                </div>
+                <div>
+                  <button type="submit" disabled={formStatus === 'loading'} className="w-full mt-2 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest rounded-full hover:bg-white/80 active:scale-95 transition-all disabled:opacity-50">
+                    {formStatus === 'loading' ? 'Sending...' : 'Send'}
+                  </button>
+                </div>
+            </motion.form>
+             {statusMessage && (
+                <p className={`mt-4 text-center text-sm ${formStatus === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+                    {statusMessage}
+                </p>
+            )}
+        </div>
+        <motion.div variants={itemVariants} className="flex justify-center gap-6 mt-8 text-center">
+            <div> <h3 className="font-sans text-xs uppercase tracking-widest text-white/50">Inquiries</h3> <a href="mailto:contact@swambasic.com" className="font-sans text-sm text-white hover:underline">contact@swambasic.com</a> </div>
+            <div> <h3 className="font-sans text-xs uppercase tracking-widest text-white/50">Support</h3> <a href="mailto:support@swambasic.com" className="font-sans text-sm text-white hover:underline">support@swambasic.com</a> </div>
+        </motion.div>
+      </motion.div>
+    </main>
+  );
+}
+
+### .\src\app\(main)\refunds\page.tsx ###
+
+// src/app/(main)/refunds/page.tsx
+import { PolicyPageLayout } from '@/components/core/PolicyPageLayout';
+export default function RefundsPage() {
+  return (
+    <PolicyPageLayout title="Cancellations & Refunds">
+      <h2>Cancellations</h2>
+      <p>You may request a cancellation within 24 hours of purchase, provided your order has not yet been shipped. Please contact us immediately at [support@swambasic.com].</p>
+      <h2>Returns & Refunds</h2>
+      <p>We accept returns on unworn, unwashed items with original tags attached within 14 days of delivery. To initiate a return, please contact our support team. Once we receive and inspect the item, a refund will be processed to your original payment method.</p>
+      <p>Please note that shipping fees are non-refundable.</p>
+    </PolicyPageLayout>
+  );
+}
+
+### .\src\app\(main)\shipping\page.tsx ###
+
+// src/app/(main)/shipping/page.tsx
+import { PolicyPageLayout } from '@/components/core/PolicyPageLayout';
+export default function ShippingPage() {
+  return (
+    <PolicyPageLayout title="Shipping Policy">
+      <h2>Processing Time</h2>
+      <p>Orders are processed within 1-3 business days. During peak seasons, processing times may be extended.</p>
+      <h2>Domestic & International Shipping</h2>
+      <p>We offer standard and expedited shipping options for both domestic and international orders. Shipping rates are calculated at checkout based on your location and selected service.</p>
+      <h2>Tracking</h2>
+      <p>Once your order has shipped, you will receive an email notification with a tracking number.</p>
+    </PolicyPageLayout>
+  );
+}
+
+### .\src\app\(main)\terms\page.tsx ###
+
+// src/app/(main)/terms/page.tsx
+import { PolicyPageLayout } from '@/components/core/PolicyPageLayout';
+export default function TermsPage() {
+  return (
+    <PolicyPageLayout title="Terms & Conditions">
+      <p>Welcome to SWAMBASIC. By accessing our website and purchasing our products, you agree to be bound by these terms and conditions. Please read them carefully.</p>
+      <h2>Intellectual Property</h2>
+      <p>All content on this site, including text, graphics, logos, and images, is the property of SWAMBASIC and is protected by international copyright laws.</p>
+      <h2>Product Use</h2>
+      <p>Our products are intended for personal, non-commercial use. Resale of our products is strictly prohibited without prior written consent.</p>
+    </PolicyPageLayout>
+  );
 }
 
 ### .\src\app\api\access\route.ts ###
@@ -1053,6 +1318,61 @@ export async function POST(request: Request) {
     }
 }
 
+### .\src\app\api\contact\route.ts ###
+
+// src/app/api/contact/route.ts
+
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  const { name, email, message } = await request.json();
+
+  if (!name || !email || !message) {
+    return NextResponse.json({ error: 'All fields are required.' }, { status: 400 });
+  }
+
+  const adminApiToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+  const storeDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+  
+  const adminApiUrl = `https://${storeDomain}/admin/api/2024-07/customers.json`;
+
+  // We create a customer with a specific note and tag to identify them as a contact inquiry.
+  // They are not subscribed to marketing.
+  const customerData = {
+    customer: {
+      first_name: name.split(' ')[0],
+      last_name: name.split(' ').slice(1).join(' ') || name.split(' ')[0], // Handle single names
+      email: email,
+      verified_email: false,
+      note: `Contact Form Submission:\n\n${message}`,
+      tags: "contact-form-inquiry",
+    }
+  };
+
+  try {
+    const response = await fetch(adminApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': adminApiToken!,
+      },
+      body: JSON.stringify(customerData),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Shopify API Error:', errorData);
+        return NextResponse.json({ error: 'Failed to submit message.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: "Message received. We'll be in touch." }, { status: 201 });
+
+  } catch (error) {
+    console.error('Contact API Error:', error);
+    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
+  }
+}
+
 ### .\src\app\api\waitlist\route.ts ###
 
 import { NextResponse } from 'next/server';
@@ -1243,6 +1563,44 @@ body {
 .text-stroke {
   -webkit-text-stroke: 1px rgba(255, 255, 255, 0.8);
   -webkit-text-fill-color: transparent;
+}
+
+/* Add this to your global CSS file (e.g., globals.css or app.css) */
+
+/* Hide scrollbar while maintaining scroll functionality */
+.hide-scrollbar {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Apply to html and body when content is revealed */
+.catalog-revealed {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.catalog-revealed::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Utility class for hiding scrollbars */
+.scrollbar-hide {
+  /* IE and Edge */
+  -ms-overflow-style: none;
+  
+  /* Firefox */
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  /* WebKit */
+  display: none;
 }
 
 ### .\src\app\layout.tsx ###
@@ -2240,16 +2598,12 @@ export const FloatingParticlesBackground = ({ mousePosition, gyroData }: { mouse
 
 ### .\src\components\core\Footer.tsx ###
 
+// src/components/core/Footer.tsx
 "use client";
 import Link from 'next/link';
 
-// Self-contained SVG icons for a clean look
 const InstagramIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-);
-
-const TwitterIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
 );
 
 export const Footer = () => {
@@ -2257,25 +2611,81 @@ export const Footer = () => {
 
   return (
     <footer className="w-full bg-black z-40 relative px-6 md:px-12 py-8 border-t border-white/10">
-      <div className="max-w-7xl mx-auto flex justify-between items-center text-sm text-white/50">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm text-white/50">
         {/* Left: Copyright */}
-        <div>
+        <div className="mb-4 md:mb-0">
           © {currentYear} SWAMBASIC. All Rights Reserved.
         </div>
         
         {/* Right: Social & Legal Links */}
-        <div className="flex items-center gap-8">
-            <div className="flex items-center gap-4">
-                <a href="https://www.instagram.com/swambasic/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors"><InstagramIcon /></a>
-            </div>
-            <div className="flex items-center gap-4 font-sans uppercase tracking-wider text-xs">
+        <div className="flex items-center gap-4 md:gap-8 flex-wrap justify-center">
+            <a href="https://www.instagram.com/swambasic/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors"><InstagramIcon /></a>
+            <div className="w-px h-4 bg-white/20 hidden md:block"></div>
+            {/* --- THIS IS THE FIX --- */}
+            <div className="flex items-center gap-4 md:gap-6 font-sans uppercase tracking-wider text-xs flex-wrap justify-center">
                 <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-                <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+                <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                <Link href="/shipping" className="hover:text-white transition-colors">Shipping</Link>
+                <Link href="/refunds" className="hover:text-white transition-colors">Refunds</Link>
+                <Link href="/reach-out" className="hover:text-white transition-colors">Contact Us</Link>
             </div>
         </div>
       </div>
     </footer>
   );
+};
+
+### .\src\components\core\FullScreenImageViewer.tsx ###
+
+// src/components/core/FullScreenImageViewer.tsx
+
+"use client";
+
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+
+interface FullScreenImageViewerProps {
+  imageUrl: string | null;
+  onClose: () => void;
+}
+
+const getOptimizedShopifyImageUrl = (url: string, size: number) => {
+    if (!url) return '';
+    try {
+        const urlObj = new URL(url);
+        const extension = urlObj.pathname.split('.').pop();
+        const pathWithoutExtension = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('.'));
+        return `${urlObj.origin}${pathWithoutExtension}_${size}x.${extension}`;
+    } catch (e) { return url; }
+};
+
+export const FullScreenImageViewer = ({ imageUrl, onClose }: FullScreenImageViewerProps) => {
+    return (
+        <AnimatePresence>
+            {imageUrl && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-4 cursor-zoom-out"
+                >
+                    <motion.div 
+                        layoutId={`product-image-${imageUrl}`}
+                        className="relative w-full h-full max-w-4xl max-h-[80vh]"
+                    >
+                        <Image
+                            src={getOptimizedShopifyImageUrl(imageUrl, 1600)}
+                            alt="Full screen product view"
+                            fill
+                            className="object-contain"
+                            quality={90}
+                        />
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
 };
 
 ### .\src\components\core\GlitchTextureBackground.tsx ###
@@ -2290,7 +2700,7 @@ import { shaderMaterial } from '@react-three/drei';
 
 const GlitchMaterial = shaderMaterial(
   // Uniforms
-  { 
+  {
     u_time: 0,
     u_intensity: 0.0,
   },
@@ -2313,30 +2723,20 @@ const GlitchMaterial = shaderMaterial(
       vec2 uv = vUv;
       float time = u_time * 0.1;
 
-      // 1. Chromatic Aberration
-      // The amount of color separation is driven by intensity
-      vec2 offset = vec2(u_intensity * 0.02);
-      float r = texture2D(u_texture, uv + offset).r;
-      float g = texture2D(u_texture, uv).g;
-      float b = texture2D(u_texture, uv - offset).b;
+      // 1. Base Grain (always present)
+      float grain = random(uv * (1.0 + u_intensity * 2.0) + time) * 0.10;
+      vec3 color = vec3(grain * 0.5);
 
-      // 2. Base Grain (Simplex-like noise)
-      // The noise becomes more chaotic with intensity
-      float grain = random(uv * (1.0 + u_intensity * 2.0) + time) * 0.15;
-      vec3 color = vec3(r + grain, g + grain, b + grain);
-
-      // 3. Scan Lines
-      // The visibility and speed of scan lines are driven by intensity
+      // 2. Scan Lines (driven by intensity)
       float scanline = sin(uv.y * 800.0 - time * 500.0) * u_intensity * 0.05;
       color += scanline;
 
-      // 4. Blocky Glitch
-      // At high intensity, chunks of the screen are displaced
-      if (random(vec2(time, 2.0)) < u_intensity * 0.2) {
+      // 3. Blocky Glitch (driven by intensity)
+      if (random(vec2(time, 2.0)) < u_intensity * 0.1) {
         float block_y = floor(uv.y * (10.0 + u_intensity * 20.0)) / (10.0 + u_intensity * 20.0);
         float displacement = random(vec2(block_y, time)) * u_intensity * 0.2;
-        if (displacement > 0.05) { // Threshold to prevent constant shifting
-           color = texture2D(u_texture, uv + vec2(displacement, 0.0)).rgb;
+        if (displacement > 0.05) {
+           color += vec3(displacement * 0.1);
         }
       }
 
@@ -2344,17 +2744,14 @@ const GlitchMaterial = shaderMaterial(
     }`
 );
 
-// We need to extend R3F to recognize our new material
 extend({ GlitchMaterial });
 
-// Internal scene component
 const Scene = ({ glitchIntensity }: { glitchIntensity: number }) => {
     const materialRef = useRef<any>();
     
     useFrame((state, delta) => {
         if (materialRef.current) {
             materialRef.current.uniforms.u_time.value += delta;
-            // Smoothly interpolate the intensity for a less jarring effect
             materialRef.current.uniforms.u_intensity.value = THREE.MathUtils.lerp(
                 materialRef.current.uniforms.u_intensity.value,
                 glitchIntensity,
@@ -2372,7 +2769,6 @@ const Scene = ({ glitchIntensity }: { glitchIntensity: number }) => {
     );
 }
 
-// The final exported component
 export const GlitchTextureBackground = ({ intensity }: { intensity: number }) => {
     return (
         <div className="fixed inset-0 z-[-1] bg-black">
@@ -2446,14 +2842,19 @@ export const GlobalSoundEffects = () => {
 
 ### .\src\components\core\Header.tsx ###
 
+// src/components/core/Header.tsx
+
 "use client";
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCartNotification } from '@/hooks/useCartNotification';
 
-// Icons
-const UserIcon = () => <span>AC</span>;
-const CartIcon = () => <span>CT</span>;
+const UserIcon = () => ( <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> );
+const CartIcon = () => {
+    const { cartCount } = useCartNotification();
+    return ( <div className="relative"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> {cartCount > 0 && ( <div className="absolute -top-2 -right-2 w-5 h-5 bg-white text-black text-xs font-bold rounded-full flex items-center justify-center"> {cartCount} </div> )} </div> );
+};
 const MenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
 const CloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
@@ -2462,48 +2863,24 @@ export const Header = () => {
 
     return (
         <>
-            <header className="fixed top-0 left-0 w-full z-50 p-6">
-                <div className="mx-auto max-w-7xl px-6 py-4 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-sm">
-                    {/* 
-                      THE FIX FOR THE OVERLAP IS HERE:
-                      - We are now using a 3-column CSS Grid.
-                      - This is the professional way to ensure the center element never overlaps the sides.
-                    */}
-                    <nav className="grid grid-cols-3 items-center">
-                        
-                        {/* Left Column */}
-                        <div className="flex justify-start">
-                            {/* DESKTOP: Left Navigation */}
+            <header className="fixed top-0 left-0 w-full z-50 p-4 md:p-6">
+                <div className="mx-auto max-w-7xl px-4 md:px-6 py-4 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-sm">
+                    <nav className="relative flex items-center justify-between w-full">
+                        <div className="flex items-center gap-8">
                             <div className="hidden md:flex items-center gap-8 font-sans text-sm uppercase tracking-wider text-white/80">
                                 <Link href="/catalog" className="hover:text-white transition-colors">Catalog</Link>
-                                <Link href="/contact" className="hover:text-white transition-colors">Reach Out</Link>
+                                <Link href="/reach-out" className="hover:text-white transition-colors">Reach Out</Link>
                             </div>
-                            {/* MOBILE: Hamburger Menu Icon */}
                             <div className="md:hidden">
-                                <button onClick={() => setIsMenuOpen(true)} className="text-white">
-                                    <MenuIcon />
-                                </button>
+                                <button onClick={() => setIsMenuOpen(true)} className="text-white"> <MenuIcon /> </button>
                             </div>
                         </div>
-
-                        {/* Center Column: Logo */}
-                        <div className="flex justify-center">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -ml-4">
                             <Link href="/home">
-                                {/* 
-                                  THE FIX FOR THE GLOW IS HERE:
-                                  - The 'style' object with the textShadow is restored.
-                                */}
-                                <span 
-                                    className="font-display font-bold text-white text-xl md:text-2xl"
-                                    style={{ textShadow: '0 0 15px rgba(255, 255, 255, 1)' }}
-                                >
-                                    SWAMBASIC
-                                </span>
+                                <span className="font-display font-bold text-white text-xl md:text-2xl" style={{ textShadow: '0 0 15px rgba(255, 255, 255, 1)' }}>SWAMBASIC</span>
                             </Link>
                         </div>
-
-                        {/* Right Column: User Actions */}
-                        <div className="flex justify-end items-center gap-6 md:gap-8 font-sans text-sm text-white/80">
+                        <div className="flex justify-end items-center gap-6 md:gap-8 text-white/80">
                             <Link href="/account" className="hover:text-white transition-colors"><UserIcon /></Link>
                             <Link href="/cart" className="hover:text-white transition-colors"><CartIcon /></Link>
                         </div>
@@ -2511,21 +2888,18 @@ export const Header = () => {
                 </div>
             </header>
 
-            {/* MOBILE: Full-screen Menu Overlay (No changes needed here) */}
             <AnimatePresence>
                 {isMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 p-6"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="md:hidden fixed top-24 left-4 right-4 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl z-[100] p-6 shadow-2xl"
                     >
-                        <div className="flex justify-end">
-                            <button onClick={() => setIsMenuOpen(false)} className="text-white"><CloseIcon /></button>
-                        </div>
-                        <nav className="flex flex-col items-center justify-center h-full gap-8 text-white font-display text-3xl uppercase">
-                            <Link href="/catalog" onClick={() => setIsMenuOpen(false)}>Catalog</Link>
-                            <Link href="/contact" onClick={() => setIsMenuOpen(false)}>Reach Out</Link>
+                        {/* --- THIS IS THE FIX: onClick handlers are restored --- */}
+                        <nav className="flex flex-col items-start gap-4 text-white font-sans text-lg uppercase">
+                            <Link href="/catalog" onClick={() => setIsMenuOpen(false)} className="w-full py-2">Catalog</Link>
+                            <Link href="/reach-out" onClick={() => setIsMenuOpen(false)} className="w-full py-2">Reach Out</Link>
                         </nav>
                     </motion.div>
                 )}
@@ -2756,10 +3130,10 @@ const LiquidGrainMaterial = shaderMaterial(
     float fbm(vec2 p) { float value = 0.0; float amplitude = 0.5; for (int i = 0; i < 3; i++) { value += amplitude * noise(p); p *= 2.0; amplitude *= 0.5; } return value; }
     void main() { 
       vec2 p = vUv * 2.5; 
-      p.x += u_time * 0.05; 
+      p.x += u_time * 0.2; 
       float noiseValue = fbm(p); 
       float grain = random(vUv * 1000.0) * 0.04; 
-      float intensity = smoothstep(0.3, 0.6, noiseValue); 
+      float intensity = smoothstep(0.4, 0.7, noiseValue); 
       float glow = pow(intensity, 0.5) * 0.3;
       vec3 color = vec3(intensity * 0.1 + 0.05 + grain + glow); 
       gl_FragColor = vec4(color, 1); 
@@ -2824,6 +3198,33 @@ export const MotionPermissionPrompt = () => {
             <MotionIcon />
         </button>
     );
+};
+
+### .\src\components\core\PolicyPageLayout.tsx ###
+
+// src/components/core/PolicyPageLayout.tsx
+
+import React from 'react';
+
+interface PolicyPageLayoutProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+export const PolicyPageLayout = ({ title, children }: PolicyPageLayoutProps) => {
+  return (
+    <main className="min-h-screen bg-black pt-40 pb-24 px-6 md:px-12">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="font-display text-4xl md:text-5xl font-bold mb-12 border-b border-white/10 pb-6">
+          {title}
+        </h1>
+        {/* The 'prose' classes automatically style the text for readability */}
+        <div className="prose prose-invert prose-lg max-w-none font-sans text-white/70 prose-headings:text-white prose-headings:font-display">
+          {children}
+        </div>
+      </div>
+    </main>
+  );
 };
 
 ### .\src\components\core\SubtleSmokeBackground.tsx ###
@@ -3087,7 +3488,8 @@ const DesktopLayout = () => {
           className="relative w-36 h-36 md:w-56 md:h-56"
         >
           <Image 
-            src="/logo-rotating.GIF" 
+            src="https://cdn.jsdelivr.net/gh/manankadel/swambasic@main/public/logo-rotating.GIF"
+
             alt="SWAMBASIC Logo" 
             fill 
             className="object-contain" 
@@ -3122,8 +3524,8 @@ const MobileLayout = () => {
           variants={MOBILE_VARIANTS.logoRotation}
         >
           <Image 
-            src="/logo-rotating.GIF" 
-            alt="SWAMBASIC Logo" 
+            src="https://cdn.jsdelivr.net/gh/manankadel/swambasic@main/public/logo-rotating.GIF"
+ alt="SWAMBASIC Logo" 
             fill 
             className="object-contain" 
             unoptimized={true}
@@ -3756,118 +4158,202 @@ export const AuthForm = () => {
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShopifyProduct } from '@/types/shopify';
+import { ShopifyProductDetailed } from '@/types/shopify';
 import { CatalogControls } from './CatalogControls';
 import { ImmersiveView } from './ImmersiveView';
 import { GridView } from './GridView';
 import { LiquidGrainBackground } from '@/components/core/LiquidGrainBackground';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
-// --- THE SPLASH SCREEN SUB-COMPONENT (FINAL, CORRECT VERSION) ---
-const CollectionSplash = ({ onReveal }: { onReveal: () => void }) => {
-  const BAR_HEIGHT = 176; // This is the height of the bar (h-44)
+const CollectionSplash = ({ onReveal, isClosing = false }: { onReveal: () => void; isClosing?: boolean }) => {
+  const BAR_HEIGHT = 176;
+  const isDesktop = useMediaQuery('(min-width: 640px)');
+
+  const textContent = (
+    <div className="text-center px-4">
+      <div className="transform -translate-y-4 sm:-translate-y-10">
+        <p className="font-sans uppercase tracking-widest text-lg sm:text-xl text-white/50 mb-6 sm:mb-8">Collection Vol. 1</p>
+        <h1 className="font-display font-black text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] leading-none">
+          Sins  of
+        </h1>
+      </div>
+      <div className="transform translate-y-4 sm:translate-y-10">
+        <h1 className="font-display font-black text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] leading-none">
+          Saints
+        </h1>
+        <p className="font-sans uppercase tracking-widest text-lg sm:text-xl text-white/50 mt-8 sm:mt-12">
+          Click to Explore The Collection.
+        </p>
+      </div>
+    </div>
+  );
+
+  const clipPathOpen = 'polygon(0 0, 100% 0, 100% calc(50% - 88px), 0 calc(50% - 88px), 0 calc(50% + 88px), 100% calc(50% + 88px), 100% 100%, 0 100%)';
+  const clipPathClosed = 'polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)';
 
   return (
     <motion.div
       key="splash"
-      exit={{}} // Parent exit is empty, only children will animate
-      className="absolute inset-0 z-20 cursor-pointer"
-      onClick={onReveal}
+      initial={isClosing ? {} : undefined}
+      animate={isClosing ? {} : undefined}
+      exit={{}}
+      className="fixed inset-0 z-20 cursor-pointer overflow-hidden" // Changed to fixed positioning
+      onClick={!isClosing ? onReveal : undefined}
     >
-      {/* 
-        THE DEFINITIVE FIX:
-        Two black "gates" with a gap in the middle. The text is underneath.
-        This is the core of the correct architecture.
-      */}
-      
-      {/* Top Gate */}
-      <motion.div
-        exit={{ y: '-100%' }}
-        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-        className="absolute top-0 left-0 w-full bg-black border-b border-white/20"
-        style={{ height: `calc(50% - ${BAR_HEIGHT / 2}px)` }}
-      />
-      
-      {/* Bottom Gate */}
-      <motion.div
-        exit={{ y: '100%' }}
-        transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-        className="absolute bottom-0 left-0 w-full bg-black border-t border-white/20"
-        style={{ height: `calc(50% - ${BAR_HEIGHT / 2}px)` }}
-      />
-
-      {/* Invisible bar overlay to hide text in the middle */}
-      <div
-        className="absolute left-0 w-full"
+      {/* Top panel */}
+      <motion.div 
+        initial={isClosing ? { y: '-100%' } : undefined} 
+        animate={isClosing ? { y: 0 } : undefined} 
+        exit={!isClosing ? { y: '-100%' } : undefined} 
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }} 
+        className="absolute top-0 left-0 w-full bg-black border-b border-white/20 will-change-transform"
         style={{ 
-          top: `calc(50% - ${BAR_HEIGHT / 2}px)`,
-          height: `${BAR_HEIGHT}px`,
-          backgroundColor: 'transparent',
-          zIndex: 10
-        }}
+          height: `calc(50% - ${BAR_HEIGHT / 2}px)`,
+          transform: 'translateZ(0)'
+        }} 
       />
-
-      {/* 
-        One single block of solid white text.
-        It sits underneath the gates and is revealed when they open.
-        It fades out as the gates are opening for a clean transition.
-      */}
-      <motion.div
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-        className="absolute inset-0 grid place-items-center"
+      
+      {/* Bottom panel */}
+      <motion.div 
+        initial={isClosing ? { y: '100%' } : undefined} 
+        animate={isClosing ? { y: 0 } : undefined} 
+        exit={!isClosing ? { y: '100%' } : undefined} 
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }} 
+        className="absolute bottom-0 left-0 w-full bg-black border-t border-white/20 will-change-transform"
+        style={{ 
+          height: `calc(50% - ${BAR_HEIGHT / 2}px)`,
+          transform: 'translateZ(0)'
+        }} 
+      />
+      
+      {/* Text content with clipping */}
+      <motion.div 
+        className="absolute inset-0 grid place-items-center text-black overflow-hidden"
+        style={{ 
+          clipPath: isDesktop ? clipPathOpen : 'none',
+          transform: 'translateZ(0)'
+        }} 
+        initial={isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
+        animate={isClosing && isDesktop ? { clipPath: clipPathOpen } : undefined}
+        exit={!isClosing ? { 
+          clipPath: isDesktop ? clipPathClosed : 'none',
+          opacity: 0 
+        } : undefined}
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }}
       >
-        <div className="text-center text-white">
-          <p className="font-sans uppercase tracking-widest text-xl text-white/50 mb-8">Collection Vol. 1</p>
-          <h1 className="font-display font-black text-9xl md:text-[10rem] leading-none">Sins of</h1>
-          <h1 className="font-display font-black text-9xl md:text-[10rem] leading-none">Saint</h1>
-          <p className="font-sans uppercase tracking-widest text-xl text-white/50 mt-12">
-            Explore The Collection.
-          </p>
-        </div>
+        {textContent}
+      </motion.div>
+      
+      <motion.div 
+        className="absolute inset-0 grid place-items-center text-white overflow-hidden"
+        style={{ 
+          mixBlendMode: 'difference', 
+          clipPath: isDesktop ? clipPathOpen : 'none',
+          transform: 'translateZ(0)'
+        }}
+        initial={isClosing && isDesktop ? { clipPath: clipPathClosed } : undefined}
+        animate={isClosing && isDesktop ? { clipPath: clipPathOpen } : undefined}
+        exit={!isClosing ? { 
+          clipPath: isDesktop ? clipPathClosed : 'none',
+          opacity: 0 
+        } : undefined}
+        transition={{ 
+          duration: isDesktop ? 1.2 : 0.6, // Faster on mobile
+          ease: [0.76, 0, 0.24, 1] 
+        }}
+      >
+        {textContent}
       </motion.div>
     </motion.div>
   );
 };
 
-// --- THE MAIN WRAPPER COMPONENT ---
 type ViewMode = 'immersive' | 'grid';
 interface CatalogClientWrapperProps {
-  products: ShopifyProduct[];
+  products: ShopifyProductDetailed[];
 }
 
 export const CatalogClientWrapper = ({ products }: CatalogClientWrapperProps) => {
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('immersive');
   const [focusedIndex, setFocusedIndex] = useState(0);
 
+  // Manage scroll behavior during different states
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    
+    if (!isRevealed || isClosing) {
+      // During splash/closing: hide scroll completely
+      html.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      html.classList.remove('catalog-revealed');
+    } else {
+      // Content revealed: enable scroll but hide scrollbar
+      html.style.overflow = '';
+      body.style.overflow = '';
+      html.classList.add('catalog-revealed');
+    }
+
+    return () => {
+      // Cleanup
+      html.style.overflow = '';
+      body.style.overflow = '';
+      html.classList.remove('catalog-revealed');
+    };
+  }, [isRevealed, isClosing]);
+
+  const handleGoBack = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsRevealed(false);
+      setIsClosing(false);
+    }, 1200);
+  };
+
   return (
-    <>
+    <div className="relative"> {/* Remove min-h-screen constraint that was hiding footer */}
+      {/* Background - always present */}
       <LiquidGrainBackground />
-
+      
+      {/* Splash screen overlay */}
       <AnimatePresence>
-        {!isRevealed && <CollectionSplash onReveal={() => setIsRevealed(true)} />}
+        {(!isRevealed || isClosing) && (
+          <CollectionSplash onReveal={() => setIsRevealed(true)} isClosing={isClosing} />
+        )}
       </AnimatePresence>
-
+      
+      {/* Main content - scrollable when revealed */}
       <AnimatePresence>
-        {isRevealed && (
+        {isRevealed && !isClosing && (
           <motion.div
             key="content"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.8, delay: 0.8 } }}
-            exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            className="absolute inset-0"
+            animate={{ opacity: 1, transition: { duration: 0.6, delay: 0.4 } }} // Faster fade in
+            exit={{ opacity: 0, transition: { duration: 0.3 } }} // Faster fade out
+            className="relative z-10" // Remove min-h-screen to let content flow naturally
           >
             {viewMode === 'immersive' && (
               <ImmersiveView products={products} focusedIndex={focusedIndex} setFocusedIndex={setFocusedIndex} />
             )}
             {viewMode === 'grid' && <GridView products={products} />}
-            <CatalogControls viewMode={viewMode} setViewMode={setViewMode} goBack={() => setIsRevealed(false)} />
+            <CatalogControls viewMode={viewMode} setViewMode={setViewMode} goBack={handleGoBack} />
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
 
@@ -3918,24 +4404,84 @@ export const CatalogControls = ({ viewMode, setViewMode, goBack }: CatalogContro
 
 "use client";
 
-import { motion } from 'framer-motion';
-import { ShopifyProduct } from '@/types/shopify';
-import { ProductCard } from '@/components/modules/products/ProductCard';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShopifyProductDetailed } from '@/types/shopify';
+import { InteractiveProductCard } from '@/components/modules/products/InteractiveProductCard';
+
+const ChevronDown = () => ( <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg> );
+
+const sortOptions = [
+    { key: 'FEATURED', label: 'Sort: Featured' },
+    { key: 'PRICE_LOW_TO_HIGH', label: 'Price: Low to High' },
+    { key: 'PRICE_HIGH_TO_LOW', label: 'Price: High to Low' },
+];
 
 interface GridViewProps {
-  products: ShopifyProduct[];
+  products: ShopifyProductDetailed[];
 }
 
 export const GridView = ({ products }: GridViewProps) => {
+  const [sortKey, setSortKey] = useState(sortOptions[0].key);
+  
+  // --- FIX: Logic for the custom dropdown is now embedded here ---
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  // --- END OF DROPDOWN LOGIC ---
+
+  const sortedProducts = useMemo(() => {
+    const newArray = [...products];
+    switch (sortKey) {
+      case 'PRICE_LOW_TO_HIGH':
+        return newArray.sort((a, b) => parseFloat(a.priceRange.minVariantPrice.amount) - parseFloat(b.priceRange.minVariantPrice.amount));
+      case 'PRICE_HIGH_TO_LOW':
+        return newArray.sort((a, b) => parseFloat(b.priceRange.minVariantPrice.amount) - parseFloat(a.priceRange.minVariantPrice.amount));
+      default:
+        return products;
+    }
+  }, [products, sortKey]);
+
+  const selectedOption = sortOptions.find(opt => opt.key === sortKey) || sortOptions[0];
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="p-12 md:p-24"
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-12 pt-32 md:pt-40">
+      <div className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+        <h1 className="font-display text-4xl font-bold">The Collection</h1>
+        
+        {/* --- FIX: The custom dropdown UI is now directly here --- */}
+        <div className="relative w-full md:w-48" ref={dropdownRef}>
+          <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm font-sans focus:outline-none transition-colors hover:border-white/30">
+            <span>{selectedOption.label}</span>
+            <motion.div animate={{ rotate: isOpen ? 180 : 0 }}> <ChevronDown /> </motion.div>
+          </button>
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full right-0 mt-2 w-full bg-black/50 border border-white/10 rounded-lg backdrop-blur-xl shadow-lg z-30 overflow-hidden">
+                {sortOptions.map((option) => (
+                  <button key={option.key} onClick={() => { setSortKey(option.key); setIsOpen(false); }} className="w-full text-left px-4 py-2 text-sm font-sans hover:bg-white/10 transition-colors">
+                    {option.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        {/* --- END OF DROPDOWN UI --- */}
+      </div>
+
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
+        {sortedProducts.map((product) => (
+          <InteractiveProductCard key={product.id} product={product} />
         ))}
       </div>
     </motion.div>
@@ -3948,81 +4494,164 @@ export const GridView = ({ products }: GridViewProps) => {
 
 "use client";
 
-import { useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { ShopifyProduct } from '@/types/shopify';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import { useCart } from '@shopify/hydrogen-react';
+import { ShopifyProductDetailed } from '@/types/shopify';
 import Image from 'next/image';
 
+const ArrowLeft = () => ( <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> );
+const ArrowRight = () => ( <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg> );
+
+const getOptimizedShopifyImageUrl = (url: string, size: number) => {
+    if (!url) return '';
+    try {
+        const urlObj = new URL(url);
+        const extension = urlObj.pathname.split('.').pop();
+        const pathWithoutExtension = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('.'));
+        return `${urlObj.origin}${pathWithoutExtension}_${size}x.${extension}`;
+    } catch (e) { return url; }
+};
+
 interface ImmersiveViewProps {
-  products: ShopifyProduct[];
+  products: ShopifyProductDetailed[];
   focusedIndex: number;
   setFocusedIndex: (index: number) => void;
 }
 
-const seededRandom = (seed: number) => {
-  let x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
 export const ImmersiveView = ({ products, focusedIndex, setFocusedIndex }: ImmersiveViewProps) => {
-  const router = useRouter();
+    const router = useRouter();
+    const { linesAdd, status: cartStatus } = useCart();
+    const product = products[focusedIndex];
+    const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>();
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [direction, setDirection] = useState(0);
 
-  const handleProductClick = (index: number) => {
-    if (index === focusedIndex) {
-      router.push(`/products/${products[index].handle}`);
-    } else {
-      setFocusedIndex(index);
-    }
-  };
-  
-  const positions = useMemo(() => {
-    return products.map((_, i) => ({
-      // Use more of the screen space
-      top: `${20 + (seededRandom(i + 1) * 60)}%`,
-      left: `${20 + (seededRandom(i * 10) * 60)}%`,
-      // Add a random rotation for a more dynamic feel
-      rotate: `${(seededRandom(i + 5) - 0.5) * 20}deg`
-    }));
-  }, [products]);
+    useEffect(() => {
+        const currentProduct = products[focusedIndex];
+        if (currentProduct) {
+            const firstAvailable = currentProduct.variants.edges.find(v => v.node.availableForSale)?.node;
+            setSelectedVariantId(firstAvailable?.id || currentProduct.variants.edges[0]?.node.id);
+            setCurrentImageIndex(0);
+        }
+    }, [focusedIndex, products]);
+    
+    const selectedVariant = useMemo(() => product?.variants.edges.find(edge => edge.node.id === selectedVariantId)?.node, [product, selectedVariantId]);
+    const imageGallery = useMemo(() => {
+        if (!product?.featuredImage) return [];
+        const otherImages = product.images?.edges.map(edge => edge.node) || [];
+        return [product.featuredImage, ...otherImages.filter(img => img.url !== product.featuredImage.url)];
+    }, [product]);
 
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="absolute inset-0 w-full h-full"
-    >
-      {products.map((product, i) => (
-        <motion.div
-          key={product.id}
-          className="absolute w-[20vw] h-[50vh] cursor-pointer"
-          style={{
-            top: positions[i].top,
-            left: positions[i].left,
-            zIndex: i === focusedIndex ? 10 : 1,
-            transform: `translate(-50%, -50%) rotate(${positions[i].rotate})`,
-          }}
-          onMouseEnter={() => setFocusedIndex(i)}
-          onClick={() => handleProductClick(i)}
-          animate={{
-            scale: i === focusedIndex ? 1.1 : 1,
-            opacity: i === focusedIndex ? 1 : 0.4,
-          }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        >
-          {product.featuredImage && (
-            <Image
-              src={product.featuredImage.url}
-              alt={product.featuredImage.altText || product.title}
-              fill
-              className="object-contain"
-              priority={i < 3} // Prioritize loading the first few images
-            />
-          )}
-        </motion.div>
-      ))}
-    </motion.div>
-  );
+    const goToNext = () => { setDirection(1); setFocusedIndex((focusedIndex + 1) % products.length); };
+    const goToPrev = () => { setDirection(-1); setFocusedIndex((focusedIndex - 1 + products.length) % products.length); };
+    
+    const handleDrag = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        const swipePower = info.offset.x;
+        if (swipePower < -100) goToNext();
+        else if (swipePower > 100) goToPrev();
+    };
+
+    const handleAddToCart = () => { if (selectedVariant) linesAdd([{ merchandiseId: selectedVariant.id, quantity: 1 }]); };
+    const isAddingToCart = cartStatus === 'updating';
+    
+    const cardVariants = {
+        enter: (direction: number) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0 }),
+        center: { x: 0, opacity: 1 },
+        exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%', opacity: 0 }),
+    };
+
+    if (!product) return <div className="w-full h-full grid place-items-center text-white/50">Loading...</div>;
+
+    return (
+        // --- MARGIN FIX: pt-28 is now applied to ALL screen sizes ---
+        <div className="relative w-full flex items-start md:items-center justify-center pt-28 pb-12 px-4">
+            
+            <button onClick={goToPrev} className="absolute left-2 md:left-8 top-1/2 -translate-y-1/2 z-20 text-white/50 hover:text-white transition-colors p-3"> <ArrowLeft /> </button>
+            <button onClick={goToNext} className="absolute right-2 md:right-8 top-1/2 -translate-y-1/2 z-20 text-white/50 hover:text-white transition-colors p-3"> <ArrowRight /> </button>
+            
+            <div className="relative w-full max-w-5xl h-full">
+                <div className="relative w-full h-full overflow-hidden">
+                    <AnimatePresence initial={false} custom={direction} mode="wait">
+                        <motion.div 
+                            key={focusedIndex}
+                            custom={direction}
+                            variants={cardVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                            drag="x"
+                            dragConstraints={{ left: 0, right: 0 }}
+                            onDragEnd={handleDrag}
+                            // --- MOBILE LAYOUT FIX: The card is now a flex column on mobile ---
+                            className="w-full h-auto md:h-[75vh] md:max-h-[650px] rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl shadow-2xl flex flex-col md:grid md:grid-cols-2 md:grid-rows-1 cursor-grab active:cursor-grabbing"
+                        >
+                            <div className="w-full aspect-square md:aspect-auto md:h-full relative bg-black/20 flex flex-col p-4">
+                                <div className="w-full flex-grow relative">
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={`${focusedIndex}-${currentImageIndex}`}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="w-full h-full"
+                                        >
+                                            <Image
+                                                src={getOptimizedShopifyImageUrl(imageGallery[currentImageIndex]?.url, 800)}
+                                                alt={imageGallery[currentImageIndex]?.altText || product.title}
+                                                fill
+                                                className="object-contain rounded-lg pointer-events-none"
+                                                style={{ filter: 'drop-shadow(0 10px 15px rgb(0 0 0 / 0.4))' }}
+                                                priority={true}
+                                                quality={85}
+                                                sizes="(max-width: 768px) 100vw, 40vw"
+                                            />
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </div>
+                                <div className="flex-shrink-0 flex justify-center items-center gap-3 pt-4">
+                                    {imageGallery.map((image, index) => (
+                                        <button key={`${image?.url}-${index}`} onClick={() => setCurrentImageIndex(index)} className={`w-10 h-14 md:w-12 md:h-16 rounded-md overflow-hidden border-2 transition-colors ${currentImageIndex === index ? 'border-white' : 'border-transparent hover:border-white/50'}`}>
+                                            <Image src={getOptimizedShopifyImageUrl(image?.url, 100)} alt={`Thumbnail ${index + 1}`} width={48} height={64} className="object-cover w-full h-full" quality={60} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="w-full h-full flex flex-col p-6 md:p-10">
+                                <div className="flex flex-col flex-grow min-h-0">
+                                    <div>
+                                        <h1 className="font-display text-3xl md:text-4xl font-bold">{product.title}</h1>
+                                        {selectedVariant && <div className="inline-block mt-3"> <p className="font-mono text-xl text-white/90 bg-white/5 px-3 py-1 rounded-md">${selectedVariant.price.amount}</p> </div> }
+                                    </div>
+                                    <div className="font-sans text-sm text-white/70 my-4 md:my-6 space-y-4 prose prose-invert max-w-none prose-sm" dangerouslySetInnerHTML={{ __html: product.descriptionHtml }} />
+                                    <div className="mt-auto pt-4 md:pt-6 border-t border-white/10">
+                                        <div>
+                                            <h2 className="font-sans text-xs uppercase tracking-wider text-white/50">Size</h2>
+                                            <div className="flex flex-wrap gap-3 mt-3">
+    {/* --- THIS IS THE SIZES FIX --- */}
+    {/* The `?.` prevents the code from crashing if a product has no variants */}
+    {product.variants?.edges.map(({ node: variant }) => (
+        <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} disabled={!variant.availableForSale} className={`px-3 py-1.5 rounded-md font-sans text-xs font-semibold border transition-colors duration-200 ${selectedVariantId === variant.id ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'} ${!variant.availableForSale ? 'opacity-30 cursor-not-allowed line-through' : 'hover:border-white/70'}`} >
+            {variant.title}
+        </button>
+    ))}
+</div>
+                                        </div>
+                                        <button onClick={handleAddToCart} disabled={!selectedVariant?.availableForSale || isAddingToCart} className="w-full mt-6 py-3 bg-white text-black font-sans font-bold uppercase tracking-widest disabled:opacity-50 enabled:hover:bg-white/80 transition-all rounded-full">
+                                            {isAddingToCart ? 'Processing...' : !selectedVariant?.availableForSale ? 'Sold Out' : 'Add to Cart'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 ### .\src\components\modules\catalog\ProductMonolith.tsx ###
@@ -4035,72 +4664,74 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useTransform, MotionValue } from 'framer-motion';
 import { ShopifyProduct } from '@/types/shopify';
-import { GlitchCanvas } from '@/components/modules/glitch/GlitchCanvas';
+
+// Assuming GlitchCanvas is a placeholder for a visual effect. 
+// A simple div will suffice for now to show/hide the effect.
+const GlitchOverlay = () => (
+    <div className="absolute inset-0 bg-black/50" />
+);
 
 interface ProductMonolithProps {
   product: ShopifyProduct;
   scrollX: MotionValue<number>;
   index: number;
-  totalItemWidth: number;
-  viewportCenter: number;
 }
 
-export const ProductMonolith = ({ product, scrollX, index, totalItemWidth, viewportCenter }: ProductMonolithProps) => {
-  // Define the input range for this specific item based on its position in the scroll track
+const ITEM_WIDTH = 320; // w-80 from Tailwind
+const GAP_WIDTH = 96; // gap-24 from Tailwind
+const TOTAL_ITEM_WIDTH = ITEM_WIDTH + GAP_WIDTH;
+
+export const ProductMonolith = ({ product, scrollX, index }: ProductMonolithProps) => {
   const inputRange = [
-    (index - 1) * totalItemWidth,
-    index * totalItemWidth,
-    (index + 1) * totalItemWidth,
+    (index - 1) * TOTAL_ITEM_WIDTH,
+    index * TOTAL_ITEM_WIDTH,
+    (index + 1) * TOTAL_ITEM_WIDTH,
   ];
 
-  // A value from -1 (left), 0 (center), to 1 (right)
   const focus = useTransform(scrollX, inputRange, [-1, 0, 1]);
-
-  // Transform opacity and scale based on focus
-  const opacity = useTransform(focus, [-1, 0, 1], [0.3, 1, 0.3]);
-  const scale = useTransform(focus, [-1, 0, 1], [0.85, 1.1, 0.85]);
-  
-  // Opacity for the glitch canvas (visible when out of focus)
-  const glitchOpacity = useTransform(focus, [-0.5, 0, 0.5], [1, 0, 1]);
-  
-  // Control pointer events to only allow clicking the focused item
-  const pointerEvents = useTransform(focus, (v) => (Math.abs(v) < 0.2 ? 'auto' : 'none'));
+  const scale = useTransform(focus, [-1, 0, 1], [0.85, 1, 0.85]);
+  const imageOpacity = useTransform(focus, [-0.5, 0, 0.5], [0.3, 1, 0.3]);
+  const glitchOpacity = useTransform(focus, [-0.6, 0, 0.6], [1, 0, 1]);
+  const pointerEvents = useTransform(focus, (v) => (Math.abs(v) < 0.3 ? 'auto' : 'none'));
 
   const titleChars = product.title.split('');
 
   return (
     <Link href={`/products/${product.handle}`} scroll={false}>
       <motion.div
-        style={{ scale, opacity, pointerEvents }}
-        className="relative w-80 h-[420px] rounded-xl flex-shrink-0 flex items-center justify-center snap-center"
+        style={{ scale, pointerEvents }}
+        className="relative w-80 h-[480px] rounded-md flex-shrink-0 flex items-center justify-center snap-center"
       >
         {/* Layer 1: The Product Image */}
         {product.featuredImage && (
-          <Image
-            src={product.featuredImage.url}
-            alt={product.title}
-            width={product.featuredImage.width}
-            height={product.featuredImage.height}
-            className="w-full h-full object-cover rounded-xl"
-          />
+          <motion.div style={{ opacity: imageOpacity }} className="w-full h-full">
+            <Image
+              src={product.featuredImage.url}
+              alt={product.title}
+              width={product.featuredImage.width}
+              height={product.featuredImage.height}
+              className="w-full h-full object-cover rounded-md"
+              priority={index < 3}
+            />
+          </motion.div>
         )}
         
-        {/* Layer 2: The Glitch Canvas Overlay */}
+        {/* Layer 2: The Glitch Overlay */}
         <motion.div 
-            className="absolute inset-0 w-full h-full overflow-hidden rounded-xl"
+            className="absolute inset-0 w-full h-full overflow-hidden rounded-md"
             style={{ opacity: glitchOpacity }}
         >
-            <GlitchCanvas />
+            <GlitchOverlay />
         </motion.div>
 
         {/* Layer 3: The Deconstructing Title */}
-        <h3 className="absolute bottom-8 left-8 font-display text-3xl font-bold text-white z-20 pointer-events-none">
+        <h3 className="absolute bottom-8 font-display text-4xl font-bold text-white z-20 pointer-events-none">
           {titleChars.map((char, i) => {
-            // Deconstruct letters when out of focus
-            const y = useTransform(focus, [-1, 0, 1], [(i - 5) * 20, 0, (i - 5) * 20]);
-            const charOpacity = useTransform(focus, [-0.5, 0, 0.5], [0, 1, 0]);
+            const y = useTransform(focus, [-1, 0, 1], [(i - titleChars.length/2) * 20, 0, (i - titleChars.length/2) * -20]);
+            const rotate = useTransform(focus, [-1, 0, 1], [-20, 0, 20]);
+            const charOpacity = useTransform(focus, [-0.6, 0, 0.6], [0, 1, 0]);
             return (
-              <motion.span key={i} className="inline-block" style={{ y, opacity: charOpacity }}>
+              <motion.span key={i} className="inline-block" style={{ y, rotate, opacity: charOpacity }}>
                 {char === ' ' ? '\u00A0' : char}
               </motion.span>
             );
@@ -4118,18 +4749,18 @@ export const ProductMonolith = ({ product, scrollX, index, totalItemWidth, viewp
 "use client";
 
 import { useRef, useEffect, useState } from 'react';
-import { motion, useScroll, useMotionValueEvent, MotionValue } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import { ShopifyProduct } from '@/types/shopify';
-import { ProductMonolith } from './ProductMonolith'; // <-- IMPORT THE NEW COMPONENT
+import { ProductMonolith } from './ProductMonolith';
 
 interface ViewfinderProps {
   products: ShopifyProduct[];
   onFocusChange: (intensity: number) => void;
 }
 
-const ITEM_WIDTH = 320; // w-80
-const GAP = 96; // gap-24
-const TOTAL_ITEM_WIDTH = ITEM_WIDTH + GAP;
+const ITEM_WIDTH = 320;
+const GAP_WIDTH = 96;
+const TOTAL_ITEM_WIDTH = ITEM_WIDTH + GAP_WIDTH;
 
 export const Viewfinder = ({ products, onFocusChange }: ViewfinderProps) => {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -4137,7 +4768,6 @@ export const Viewfinder = ({ products, onFocusChange }: ViewfinderProps) => {
   const [viewportCenter, setViewportCenter] = useState(0);
 
   useEffect(() => {
-    // This is a robust way to get the viewport center on the client
     const updateCenter = () => setViewportCenter(window.innerWidth / 2);
     updateCenter();
     window.addEventListener('resize', updateCenter);
@@ -4145,24 +4775,12 @@ export const Viewfinder = ({ products, onFocusChange }: ViewfinderProps) => {
   }, []);
 
   useMotionValueEvent(scrollX, "change", (latestScrollX) => {
-    let minDistance = Infinity;
-
-    for (let i = 0; i < products.length; i++) {
-      const itemStart = i * TOTAL_ITEM_WIDTH;
-      // Calculate item's center relative to the start of the scroll track
-      const itemCenterInTrack = itemStart + (ITEM_WIDTH / 2);
-      // Calculate item's center relative to the viewport
-      const itemCenterInViewport = itemCenterInTrack - latestScrollX;
-      // Calculate absolute distance from the viewport center
-      const distance = Math.abs(viewportCenter - itemCenterInViewport);
-      
-      if (distance < minDistance) {
-        minDistance = distance;
-      }
-    }
+    const centerIndex = Math.round(latestScrollX / TOTAL_ITEM_WIDTH);
+    const centerOfClosestItem = centerIndex * TOTAL_ITEM_WIDTH + (ITEM_WIDTH / 2);
+    const currentCenterOfViewport = latestScrollX + viewportCenter;
     
-    // Transform distance to intensity (0=focused, 1=unfocused)
-    const intensity = Math.min(1, minDistance / (TOTAL_ITEM_WIDTH / 2));
+    const distance = Math.abs(currentCenterOfViewport - centerOfClosestItem);
+    const intensity = Math.min(1, distance / (TOTAL_ITEM_WIDTH / 2));
     onFocusChange(intensity);
   });
 
@@ -4170,11 +4788,15 @@ export const Viewfinder = ({ products, onFocusChange }: ViewfinderProps) => {
     <motion.div
       ref={trackRef}
       className="absolute inset-0 flex overflow-x-scroll snap-x snap-mandatory hide-scrollbar cursor-grab active:cursor-grabbing"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
     >
-      {/* We add padding to the flex container itself to center the items */}
       <div 
         className="flex items-center gap-24 h-full"
-        style={{ paddingLeft: `calc(50vw - ${ITEM_WIDTH / 2}px)`, paddingRight: `calc(50vw - ${ITEM_WIDTH / 2}px)` }}
+        style={{ 
+          paddingLeft: `calc(50vw - ${ITEM_WIDTH / 2}px)`, 
+          paddingRight: `calc(50vw - ${ITEM_WIDTH / 2}px)` 
+        }}
       >
         {products.map((product, i) => (
           <ProductMonolith
@@ -4182,14 +4804,30 @@ export const Viewfinder = ({ products, onFocusChange }: ViewfinderProps) => {
             product={product}
             index={i}
             scrollX={scrollX}
-            totalItemWidth={TOTAL_ITEM_WIDTH}
-            viewportCenter={viewportCenter}
           />
         ))}
       </div>
     </motion.div>
   );
 };
+
+// A helper style to hide the scrollbar across browsers
+const scrollbarHideStyle = `
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.type = "text/css";
+  styleSheet.innerText = scrollbarHideStyle;
+  document.head.appendChild(styleSheet);
+}
 
 ### .\src\components\modules\glitch\GlitchCanvas.tsx ###
 
@@ -4327,7 +4965,7 @@ export const BrandManifesto = () => {
 "use client";
 
 import { useState, useEffect } from 'react';
-// THE FIX: We now import our new, reusable component
+import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/modules/products/ProductCard'; 
 import { getProducts } from '@/lib/shopify';
 import { ShopifyProduct } from '@/types/shopify';
@@ -4335,45 +4973,417 @@ import { ShopifyProduct } from '@/types/shopify';
 export const FeaturedProducts = () => {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const fetchedProducts = await getProducts(4); // Fetch the first 4 products
+        const fetchedProducts = await getProducts(6); // Get more products for rotation
         setProducts(fetchedProducts);
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
-        setIsLoading(false);
+      } catch (error) { 
+        console.error("Failed to fetch products:", error); 
+      } finally { 
+        setIsLoading(false); 
       }
     };
-
     fetchProducts();
   }, []);
 
+  // Auto-rotate products
+  useEffect(() => {
+    if (!isHovered && products.length > 3) {
+      const interval = setInterval(() => {
+        setActiveIndex((prev) => (prev + 1) % (products.length - 2));
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [products.length, isHovered]);
+
   if (isLoading) {
     return (
-        <section className="py-24 px-6 md:px-12 bg-black text-center">
-            <h2 className="font-display text-4xl mb-12">Featured Collection</h2>
-            <p className="font-sans text-white/50">Loading Products...</p>
-        </section>
+      <section className="py-24 px-6 md:px-12 bg-black text-center overflow-hidden">
+        <div className="relative">
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+            animate={{ x: [-1000, 1000] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          />
+          <h2 className="font-display text-4xl mb-12 text-white relative z-10">Featured Collection</h2>
+          <div className="flex justify-center items-center space-x-2">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-2 h-2 bg-white/30 rounded-full"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 1.5, delay: i * 0.2, repeat: Infinity }}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
     );
   }
 
+  const displayProducts = products.slice(activeIndex, activeIndex + 3);
+
   return (
-    <section className="py-24 px-6 md:px-12 bg-black">
-      <h2 className="font-display text-4xl mb-12 text-center">Featured Collection</h2>
-      {/* THE FIX: The layout now uses a grid for better responsiveness */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+    <section className="py-24 px-6 md:px-12 bg-black relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 opacity-10">
+        <motion.div
+          className="absolute top-20 left-10 w-32 h-32 border border-white/20 rounded-full"
+          animate={{ 
+            rotate: 360,
+            scale: [1, 1.2, 1],
+          }}
+          transition={{ 
+            rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+            scale: { duration: 8, repeat: Infinity, ease: "easeInOut" }
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 right-10 w-24 h-24 bg-white/5 rounded-full"
+          animate={{ 
+            y: [-20, 20, -20],
+            opacity: [0.5, 1, 0.5]
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/4 w-1 h-20 bg-gradient-to-b from-transparent via-white/20 to-transparent"
+          animate={{ scaleY: [0, 1, 0] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      <div className="relative z-10">
+        <motion.div
+          className="text-center mb-16"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <motion.h2 
+            className="font-display text-4xl md:text-5xl mb-4 text-white"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1 }}
+          >
+            Featured Collection
+          </motion.h2>
+          <motion.div
+            className="w-20 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent mx-auto"
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.5, delay: 0.5 }}
+          />
+        </motion.div>
+
+        {/* Dynamic product showcase */}
+        <div 
+          className="max-w-6xl mx-auto"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeIndex}
+              className="grid md:grid-cols-3 gap-8"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              transition={{ duration: 0.8, staggerChildren: 0.2 }}
+            >
+              {displayProducts.map((product, index) => (
+                <motion.div
+                  key={`${activeIndex}-${index}`}
+                  className="relative group"
+                  initial={{ opacity: 0, y: 60, rotateX: -15 }}
+                  animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                  transition={{ 
+                    duration: 0.8, 
+                    delay: index * 0.2,
+                    type: "spring",
+                    stiffness: 100
+                  }}
+                  whileHover={{ 
+                    y: -10, 
+                    scale: 1.02,
+                    transition: { duration: 0.3 }
+                  }}
+                >
+                  {/* Glowing border effect */}
+                  <motion.div
+                    className="absolute -inset-0.5 bg-gradient-to-r from-white/20 via-white/5 to-white/20 rounded-lg opacity-0 group-hover:opacity-100 blur-sm"
+                    initial={false}
+                    animate={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                  
+                  {/* Product card with enhanced styling */}
+                  <div className="relative bg-zinc-900/50 backdrop-blur-sm rounded-lg overflow-hidden border border-white/10 group-hover:border-white/20 transition-all duration-300">
+                    <ProductCard product={product} />
+                  </div>
+
+                  {/* Floating accent */}
+                  <motion.div
+                    className="absolute -top-2 -right-2 w-4 h-4 bg-white/20 rounded-full opacity-0 group-hover:opacity-100"
+                    animate={{ 
+                      scale: [1, 1.5, 1],
+                      opacity: [0.5, 1, 0.5]
+                    }}
+                    transition={{ 
+                      duration: 2, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Navigation dots */}
+          {products.length > 3 && (
+            <motion.div 
+              className="flex justify-center mt-12 space-x-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+            >
+              {Array.from({ length: products.length - 2 }).map((_, index) => (
+                <motion.button
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === activeIndex 
+                      ? 'bg-white w-8' 
+                      : 'bg-white/30 hover:bg-white/50'
+                  }`}
+                  onClick={() => setActiveIndex(index)}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </div>
+
+        {/* Call to action */}
+        <motion.div
+          className="text-center mt-16"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1, delay: 0.5 }}
+        >
+          <motion.button
+            className="group relative px-8 py-3 bg-transparent border border-white/20 text-white font-medium rounded-full overflow-hidden hover:border-white/40 transition-all duration-300"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-white/5 translate-x-full group-hover:translate-x-0 transition-transform duration-300"
+            />
+            <span 
+              className="relative z-10 cursor-pointer"
+              onClick={() => window.location.href = "/catalog"}
+            >
+              View All Products
+            </span>
+          </motion.button>
+        </motion.div>
       </div>
     </section>
   );
 };
 
+### .\src\components\modules\homepage\GlitchMarquee.tsx ###
+
+"use client";
+
+import React, { useState, useEffect, useRef } from 'react';
+
+interface TerminalEntry {
+  type: 'command' | 'output' | 'easter' | 'secret';
+  text: string;
+}
+
+const TerminalFooter = () => {
+  const [currentLine, setCurrentLine] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showCursor, setShowCursor] = useState(true);
+  const [terminalHistory, setTerminalHistory] = useState<TerminalEntry[]>([]);
+  const [isHovered, setIsHovered] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+  const containerRef = useRef<HTMLElement>(null);
+
+  // --- THIS IS THE FIX: The command list is now longer and more varied ---
+  const commands = [
+    { command: "> initiate --protocol=swambasic", output: "protocol loaded. welcome.", delay: 2000 },
+    { command: "> cat /etc/philosophy", output: "form. function. perspective.", delay: 2500 },
+    { command: "> query --identity", output: "we are not for everyone. and we never will be.", delay: 3000 },
+    { command: "> get_var --collection", output: "vol. 1 // sins of saints", delay: 2800 },
+    { command: "> social --connect --platform=instagram", output: "now streaming consciousness: @swambasic", delay: 3200 },
+    { command: "> echo 'the concept'", output: "luxury is a mindset, not a price tag.", delay: 3000 },
+    { command: "> run diagnostic --aesthetic", output: "result: [OK] minimal. textural. intentional.", delay: 2800 },
+    { command: "> read /dev/thoughts --filter=genz", output: "iykyk. the vibe is the brand.", delay: 2500 },
+    { command: "> get_directive --current", output: "reject the ordinary.", delay: 3000 },
+    { command: "> stream --updates", output: "new artifacts are being forged in the void...", delay: 3500 },
+    { command: "> cat /logs/saints.log", output: "ERROR: no saints found.", delay: 2800 },
+    { command: "> cat /logs/sins.log", output: "log file too large to display.", delay: 2800 },
+    { command: "> follow --us", output: "find us in the static: @swambasic", delay: 3200 },
+    { command: "> exit --code=0", output: "disconnecting... but the signal remains.", delay: 3000 }
+  ];
+
+  const easterEggs = [
+    "> this is not a footer.",
+    "> where does the minimalism end?",
+    "> ask a better question.",
+    "> find what you are not looking for.",
+    "> iykyk"
+  ];
+
+  const secrets = [
+    "// form is an illusion.",
+    "/* function is a construct. */", 
+    "// perspective is the only constant.",
+    "/* the void is staring back. */",
+    "// did you see it?"
+  ];
+  // --- END OF THE FIX ---
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const typeCommand = async (text: string, isCommand = true) => {
+      setIsTyping(true);
+      setDisplayText('');
+      for (let i = 0; i <= text.length; i++) {
+        setDisplayText(text.slice(0, i));
+        await new Promise(resolve => setTimeout(resolve, isCommand ? 40 : 25));
+      }
+      setIsTyping(false);
+      return new Promise(resolve => setTimeout(resolve, 800));
+    };
+
+    const runCommand = async () => {
+      const cmd = commands[currentLine];
+      await typeCommand(cmd.command, true);
+      setTerminalHistory(prev => [...prev, { type: 'command', text: cmd.command }]);
+      await new Promise(resolve => setTimeout(resolve, 200));
+      await typeCommand(cmd.output, false);
+      setTerminalHistory(prev => [...prev, { type: 'output', text: cmd.output }]);
+      await new Promise(resolve => setTimeout(resolve, cmd.delay));
+      setCurrentLine(prev => (prev + 1) % commands.length);
+    };
+
+    const interval = setTimeout(runCommand, 1000);
+    return () => clearTimeout(interval);
+  }, [currentLine, commands]);
+
+  useEffect(() => {
+    const cursorInterval = setInterval(() => {
+      setShowCursor(prev => !prev);
+    }, 500);
+    return () => clearInterval(cursorInterval);
+  }, []);
+
+  const handleClick = () => {
+    setClickCount(prev => prev + 1);
+    const randomEgg = easterEggs[Math.floor(Math.random() * easterEggs.length)];
+    const randomSecret = secrets[Math.floor(Math.random() * secrets.length)];
+    if (clickCount % 3 === 2) {
+      setTerminalHistory(prev => [...prev, { type: 'secret', text: randomSecret }]);
+    } else {
+      setTerminalHistory(prev => [...prev, { type: 'easter', text: randomEgg }]);
+    }
+  };
+
+  const formatTime = () => {
+    if (!isMounted) return "00:00:00";
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+
+  return (
+    <footer 
+      ref={containerRef}
+      className="bg-black text-green-400 font-mono text-sm relative border-t border-green-900/50 cursor-pointer overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={handleClick}
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-400/5 to-transparent animate-pulse"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(transparent_98%,rgba(34,197,94,0.1)_100%)] bg-[length:100%_4px]"></div>
+      </div>
+      <div className={`absolute inset-0 transition-opacity duration-1000 ${isHovered ? 'bg-green-400/5' : 'bg-green-400/2'}`}></div>
+      <div className="relative z-10 p-6 max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-4 text-xs text-green-500/70">
+          <div className="flex items-center space-x-4">
+            <div className="flex space-x-2">
+              <div className="w-3 h-3 rounded-full bg-red-500/60"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500/60"></div>
+            </div>
+            <span>swambasic_consciousness_interface</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span>{formatTime()}</span>
+            <span className={`transition-opacity ${isHovered ? 'opacity-100' : 'opacity-50'}`}>◉ STREAMING</span>
+          </div>
+        </div>
+        <div className="space-y-1 min-h-[200px] max-h-[300px] overflow-y-auto">
+          {terminalHistory.slice(-10).map((entry, index) => (
+            <div key={index} className={`transition-all duration-300 ${ entry.type === 'command' ? 'text-green-400' : entry.type === 'output' ? 'text-green-300/80 ml-2' : entry.type === 'easter' ? 'text-cyan-400' : 'text-gray-500 italic' }`}>
+              {entry.text}
+            </div>
+          ))}
+          <div className="flex items-center">
+            <span className="text-green-400">{displayText}</span>
+            <span className={`ml-1 ${showCursor && !isTyping ? 'opacity-100' : 'opacity-0'} transition-opacity`}>█</span>
+          </div>
+        </div>
+        <div className="mt-6 pt-4 border-t border-green-900/30 flex justify-between items-center text-xs text-green-600/60">
+          <div className="flex space-x-6">
+            <span>form</span>
+            <span>//</span>
+            <span>function</span>
+            <span>//</span>
+            <span>perspective</span>
+            <span>•</span>
+            <span className={isHovered ? 'text-green-400' : ''}> [interact] </span>
+          </div>
+          <div className="text-green-500/40">
+            {clickCount > 0 && `log: ${clickCount} thoughts processed`}
+          </div>
+        </div>
+      </div>
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-green-400/50 to-transparent animate-pulse"></div>
+      </div>
+      <style jsx>{`
+        .space-y-1::-webkit-scrollbar { width: 6px; }
+        .space-y-1::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
+        .space-y-1::-webkit-scrollbar-thumb { background: rgba(34, 197, 94, 0.3); border-radius: 3px; }
+      `}</style>
+    </footer>
+  );
+};
+
+export default TerminalFooter;
+
 ### .\src\components\modules\homepage\HeroSection.tsx ###
+
+// src/components/modules/homepage/HeroSection.tsx
 
 "use client";
 import Link from 'next/link';
@@ -4382,21 +5392,10 @@ import { motion } from 'framer-motion';
 export const HeroSection = () => {
   return (
     <section className="relative h-screen w-screen flex items-center justify-center">
-      {/* Video Background */}
-      <video
-        src="/hero-video.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline // Important for mobile browsers
-        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
-      />
-      {/* Dark Overlay */}
+      <video src="/hero-video.mp4" autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover -z-10" />
       <div className="absolute top-0 left-0 w-full h-full bg-black/50 -z-10" />
-
-      {/* Centered Content */}
       <motion.div 
-        className="text-center text-white z-10 "
+        className="text-center text-white z-10 flex flex-col items-center" // --- FIX: Added flexbox for alignment
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.5 }}
@@ -4404,12 +5403,13 @@ export const HeroSection = () => {
         <h1 className="font-display font-black text-5xl md:text-8xl uppercase">
           First Drop Is Live
         </h1>
+        {/* --- FIX: max-w-lg ensures this text wraps correctly relative to the heading --- */}
         <p className="font-sans text-center mt-4 max-w-lg">
           Explore the inaugural collection. Limited quantities available.
         </p>
         <Link href="/catalog" passHref>
           <motion.button 
-            className="mt-8 px-8 py-4 bg-white/90 rounded-3xl text-black font-sans font-bold uppercase tracking-widest"
+            className="mt-8 px-8 py-4 bg-white/90 text-black font-sans font-bold uppercase tracking-widest rounded-full"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -4419,6 +5419,193 @@ export const HeroSection = () => {
       </motion.div>
     </section>
   );
+};
+
+### .\src\components\modules\homepage\InteractiveMarquee.tsx ###
+
+// src/components/modules/homepage/InteractiveMarquee.tsx
+"use client";
+import { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+
+const MarqueeText = ({ children, speed }: { children: React.ReactNode, speed: number }) => {
+    return (
+        <div className="flex" style={{ transform: `translateX(${speed}%)` }}>
+            <span className="font-display text-6xl md:text-8xl text-stroke whitespace-nowrap pr-16">{children}</span>
+            <span className="font-display text-6xl md:text-8xl text-stroke whitespace-nowrap pr-16">{children}</span>
+        </div>
+    );
+}
+
+export const InteractiveMarquee = () => {
+    const marqueeRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: marqueeRef,
+        offset: ['start end', 'end start']
+    });
+
+    // This transforms the scroll progress (0 to 1) into a motion value
+    const speed = useTransform(scrollYProgress, [0, 1], [-20, 0]);
+
+    return (
+        <section ref={marqueeRef} className="py-16 md:py-24 bg-black overflow-hidden">
+            <MarqueeText speed={speed.get()}>
+                Form     Function     Perspective    
+            </MarqueeText>
+        </section>
+    );
+};
+
+### .\src\components\modules\products\InteractiveProductCard.tsx ###
+
+// src/components/modules/products/InteractiveProductCard.tsx
+
+"use client";
+
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCart } from '@shopify/hydrogen-react';
+import { ShopifyProductDetailed } from '@/types/shopify';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useCartNotification } from '@/hooks/useCartNotification';
+import Image from 'next/image';
+
+const getOptimizedShopifyImageUrl = (url: string, size: number) => {
+    if (!url) return '';
+    try {
+        const urlObj = new URL(url);
+        const extension = urlObj.pathname.split('.').pop();
+        const pathWithoutExtension = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('.'));
+        return `${urlObj.origin}${pathWithoutExtension}_${size}x.${extension}`;
+    } catch (e) { return url; }
+};
+
+const ArrowLeft = () => ( <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> );
+const ArrowRight = () => ( <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg> );
+
+interface InteractiveProductCardProps {
+  product: ShopifyProductDetailed;
+}
+
+export const InteractiveProductCard = ({ product }: InteractiveProductCardProps) => {
+    const router = useRouter();
+    const { linesAdd, status: cartStatus } = useCart();
+    const { showNotification } = useCartNotification();
+    const [isUIActive, setUIActive] = useState(false);
+    const isHoverCapable = useMediaQuery('(hover: hover)');
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
+        product.variants.edges.find(v => v.node.availableForSale)?.node.id || product.variants.edges[0]?.node.id
+    );
+
+    const imageGallery = useMemo(() => {
+        if (!product?.featuredImage) return [];
+        const otherImages = product.images?.edges.map(edge => edge.node) || [];
+        return [product.featuredImage, ...otherImages.filter(img => img.url !== product.featuredImage.url)];
+    }, [product]);
+
+    const handleNextImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex((p) => (p + 1) % imageGallery.length); };
+    const handlePrevImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex((p) => (p - 1 + imageGallery.length) % imageGallery.length); };
+
+    const handleAddToCart = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const selectedVariant = product.variants.edges.find(edge => edge.node.id === selectedVariantId)?.node;
+        if (selectedVariant) {
+            linesAdd([{ merchandiseId: selectedVariant.id, quantity: 1 }]);
+            showNotification(`${product.title} added to cart`);
+        }
+    };
+    
+    const isAddingToCart = cartStatus === 'updating';
+
+    const handleCardClick = () => {
+        if (!isHoverCapable) {
+            setUIActive(!isUIActive);
+        } else {
+            router.push(`/products/${product.handle}`);
+        }
+    };
+
+    return (
+        <motion.div 
+            className="group relative w-full cursor-pointer"
+            onClick={handleCardClick}
+            onHoverStart={() => isHoverCapable && setUIActive(true)}
+            onHoverEnd={() => isHoverCapable && setUIActive(false)}
+        >
+            <div className="relative w-full rounded-xl border border-white/10 bg-black/20 backdrop-blur-xl shadow-lg overflow-hidden transition-shadow duration-300 group-hover:shadow-black/50">
+                <div className="relative w-full aspect-[3/4] bg-black/20">
+                    <AnimatePresence mode="wait">
+                        {/* --- THIS IS THE FIX: A new, more subtle animation --- */}
+                        <motion.div
+                            key={currentImageIndex}
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                            className="w-full h-full"
+                        >
+                            <Image
+                                src={getOptimizedShopifyImageUrl(imageGallery[currentImageIndex]?.url, 600)}
+                                alt={imageGallery[currentImageIndex]?.altText || product.title}
+                                fill
+                                className="object-cover"
+                                quality={80}
+                                sizes="(max-width: 768px) 50vw, 25vw"
+                            />
+                        </motion.div>
+                    </AnimatePresence>
+                    
+                    <AnimatePresence>
+                        {isUIActive && (
+                            <>
+                                <motion.button onClick={handlePrevImage} className="absolute top-1/2 left-2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/40 text-white/70 hover:text-white backdrop-blur-sm" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}> <ArrowLeft /> </motion.button>
+                                <motion.button onClick={handleNextImage} className="absolute top-1/2 right-2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/40 text-white/70 hover:text-white backdrop-blur-sm" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}> <ArrowRight /> </motion.button>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div className="p-4">
+                    <h3 className="font-sans font-semibold text-white truncate">{product.title}</h3>
+                    <p className="font-mono text-sm text-white/70">${product.priceRange.minVariantPrice.amount}</p>
+                </div>
+
+                <AnimatePresence>
+                    {isUIActive && (
+                        <motion.div 
+                            className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-20"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        >
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {product.variants?.edges.map(({ node: variant }) => (
+                                    <button
+                                        key={variant.id}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedVariantId(variant.id); }}
+                                        disabled={!variant.availableForSale}
+                                        className={`px-2 py-1 rounded-md font-sans text-[10px] font-semibold border transition-colors duration-200 ${selectedVariantId === variant.id ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'} ${!variant.availableForSale ? 'opacity-30 cursor-not-allowed' : 'hover:border-white/70'}`}
+                                    >
+                                        {variant.title}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={handleAddToCart}
+                                disabled={!selectedVariantId || isAddingToCart}
+                                className="w-full py-2 bg-white/90 text-black font-sans text-xs font-bold uppercase tracking-widest disabled:opacity-50 enabled:hover:bg-white transition-all rounded-full"
+                            >
+                                {isAddingToCart ? '...' : 'Quick Add'}
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </motion.div>
+    );
 };
 
 ### .\src\components\modules\products\ProductCard.tsx ###
@@ -4589,6 +5776,67 @@ export const ProductDetails = ({ product }: ProductDetailsProps) => {
       </div>
     </div>
   );
+};
+
+### .\src\hooks\useCartNotification.tsx ###
+
+// src/hooks/useCartNotification.tsx
+
+import { create } from 'zustand';
+import { useCart } from '@shopify/hydrogen-react';
+import { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface CartNotificationState {
+  isVisible: boolean;
+  message: string;
+  cartCount: number;
+  showNotification: (message: string) => void;
+  hideNotification: () => void;
+  setCartCount: (count: number) => void;
+}
+
+const useCartNotificationStore = create<CartNotificationState>((set) => ({
+  isVisible: false,
+  message: '',
+  cartCount: 0,
+  showNotification: (message) => {
+    set({ isVisible: true, message });
+    setTimeout(() => set({ isVisible: false }), 2000);
+  },
+  hideNotification: () => set({ isVisible: false }),
+  setCartCount: (count) => set({ cartCount: count }),
+}));
+
+// This is the UI component for the pop-up
+export const CartToast = () => {
+    const { isVisible, message } = useCartNotificationStore();
+    return (
+        <AnimatePresence>
+            {isVisible && (
+                <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-white text-black font-sans font-bold text-sm rounded-full shadow-lg"
+                >
+                    {message}
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+// This is the hook we will use in other components
+export const useCartNotification = () => {
+    const { showNotification, setCartCount, cartCount } = useCartNotificationStore();
+    const { totalQuantity } = useCart();
+
+    useEffect(() => {
+        setCartCount(totalQuantity ?? 0);
+    }, [totalQuantity, setCartCount]);
+    
+    return { showNotification, cartCount };
 };
 
 ### .\src\hooks\useGyroscope.ts ###
@@ -4963,6 +6211,65 @@ export async function getProductByHandle(handle: string): Promise<ShopifyProduct
     variables: { handle },
   });
   return res.body.data.product;
+}
+
+
+// ADD THIS ENTIRE BLOCK OF CODE TO THE END OF src/lib/shopify.ts
+
+const getProductsDetailedQuery = `
+  query getProductsDetailed($first: Int!) {
+    products(first: $first) {
+      edges {
+        node {
+          id
+          handle
+          title
+          descriptionHtml
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+          images(first: 10) {
+            edges {
+              node {
+                url
+                altText
+              }
+            }
+          }
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                title
+                availableForSale
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export async function getProductsDetailed(count: number): Promise<ShopifyProductDetailed[]> {
+  const res = await shopifyFetch<{ data: { products: { edges: { node: ShopifyProductDetailed }[] } } }>({
+    query: getProductsDetailedQuery,
+    variables: { first: count },
+  });
+  return res.body.data.products.edges.map((edge) => edge.node);
 }
 
 ### .\src\middleware.ts ###
